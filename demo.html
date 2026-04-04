@@ -218,6 +218,24 @@ textarea.inp{resize:none}
   </div>
 </div>
 
+<!-- ITEM PICKER -->
+<div id="item-picker" style="position:fixed;inset:0;z-index:70;background:var(--bg);display:none;flex-direction:column">
+  <div style="background:#fff;padding:max(14px,env(safe-area-inset-top,14px)) 16px 0;border-bottom:1px solid var(--sep);flex-shrink:0">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+      <button onclick="closeItemPicker()" style="width:36px;height:36px;border-radius:10px;background:#F1F5F9;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div style="font-size:17px;font-weight:700;color:var(--t1)">Gegenstand wählen</div>
+    </div>
+    <div class="search-wrap" style="margin-bottom:12px">
+      <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="ip-search" class="inp search-inp" placeholder="Suchen..." oninput="ipRender()">
+    </div>
+  </div>
+  <div id="ip-cats" style="overflow-x:auto;-webkit-overflow-scrolling:touch;display:flex;gap:8px;padding:10px 16px;background:#fff;border-bottom:1px solid var(--sep);flex-shrink:0"></div>
+  <div id="ip-list" style="flex:1;overflow-y:scroll;-webkit-overflow-scrolling:touch;padding:12px 16px;padding-bottom:calc(env(safe-area-inset-bottom,0px)+16px)"></div>
+</div>
+
 <!-- APP SHELL: body IS the flex container -->
 <!-- CONTENT -->
 <div id="content"></div>
@@ -839,29 +857,96 @@ function tlRentalTap(id){
 // ── RENTAL FORM ───────────────────────────────────────────────────────────────
 let rfLines=[];// [{iid,qty}]
 
-function rfItemOptions(selIid){
-  return D.items.filter(i=>i.rent).map(i=>`<option value="${i.id}"${selIid===i.id?' selected':''}>${e(i.name)} (${i.qty}×)</option>`).join('');
-}
-
 function rfRenderLines(){
   const wrap=document.getElementById('rf-lines');if(!wrap)return;
-  wrap.innerHTML=rfLines.map((l,idx)=>`
-    <div style="display:flex;gap:8px;align-items:flex-end" id="rfline-${idx}">
-      <div class="field" style="flex:1">
+  wrap.innerHTML=rfLines.map((l,idx)=>{
+    const itm=l.iid?item(l.iid):null;
+    const c=itm?(cat(itm.cid)||{emoji:'📦'}):null;
+    const btnLabel=itm?`${c.emoji} ${e(itm.name)}`:'– Gegenstand wählen –';
+    const btnColor=itm?'var(--t1)':'var(--t3)';
+    return `<div style="display:flex;gap:8px;align-items:flex-end;margin-bottom:8px" id="rfline-${idx}">
+      <div class="field" style="flex:1;min-width:0">
         ${idx===0?'<label class="lbl">Gegenstand *</label>':''}
-        <select class="inp" onchange="rfLines[${idx}].iid=parseInt(this.value)||0;rfCalcAll();rfAvailAll()">
-          <option value="">– wählen –</option>${rfItemOptions(l.iid)}
-        </select>
+        <button type="button" onclick="openItemPicker(${idx})" class="inp" style="text-align:left;display:flex;align-items:center;justify-content:space-between;gap:6px;cursor:pointer;color:${btnColor};padding:12px 14px">
+          <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1">${btnLabel}</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2.5" style="flex-shrink:0"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
       </div>
-      <div class="field" style="width:72px">
+      <div class="field" style="width:80px;flex-shrink:0">
         ${idx===0?'<label class="lbl">Menge</label>':''}
-        <input class="inp" type="number" min="1" value="${l.qty||1}" style="text-align:center"
-          oninput="rfLines[${idx}].qty=parseInt(this.value)||1;rfCalcAll();rfAvailAll()">
+        <input class="inp" type="number" min="1" value="${l.qty||1}" style="text-align:center;padding:12px 6px"
+          oninput="rfLines[${idx}].qty=parseInt(this.value)||1;rfCalcAll();rfAvailAll();rfUpdateQtyInd()">
+        <div id="rf-qind-${idx}" style="font-size:11px;text-align:center;margin-top:3px;font-weight:600;color:var(--t3)"></div>
       </div>
-      ${rfLines.length>1?`<button type="button" onclick="rfRemoveLine(${idx})"
-        style="width:40px;height:48px;border-radius:12px;background:#FEE2E2;border:none;cursor:pointer;color:var(--err);font-size:20px;flex-shrink:0;${idx===0?'margin-top:22px':''}">×</button>`:''}
-    </div>`).join('');
-  rfCalcAll();rfAvailAll();
+      ${rfLines.length>1?`<button type="button" onclick="rfRemoveLine(${idx})" style="width:40px;height:48px;border-radius:12px;background:#FEE2E2;border:none;cursor:pointer;color:var(--err);font-size:20px;flex-shrink:0;${idx===0?'margin-top:22px':''}">×</button>`:''}
+    </div>`;
+  }).join('');
+  rfCalcAll();rfAvailAll();rfUpdateQtyInd();
+}
+
+function rfUpdateQtyInd(){
+  const s=rfSelStart,e_=rfSelEnd;
+  rfLines.forEach((l,idx)=>{
+    const el=document.getElementById(`rf-qind-${idx}`);if(!el||!l.iid)return;
+    const itm=item(l.iid);if(!itm)return;
+    if(!s||!e_){el.textContent=`von ${itm.qty}`;el.style.color='var(--t3)';return;}
+    const av=avail(l.iid,s,e_,l.qty||1,window._rfEditId);
+    el.textContent=`/ ${Math.max(0,av.n)} frei`;
+    el.style.color=av.ok?'var(--ok)':'var(--err)';
+  });
+}
+
+// ── ITEM PICKER ───────────────────────────────────────────────────────────────
+let _ipIdx=0,_ipCat=0;
+
+function openItemPicker(idx){
+  _ipIdx=idx;_ipCat=0;
+  const inp=document.getElementById('ip-search');if(inp)inp.value='';
+  document.getElementById('item-picker').style.display='flex';
+  ipRender();
+}
+function closeItemPicker(){document.getElementById('item-picker').style.display='none';}
+
+function ipRender(){
+  const q=(document.getElementById('ip-search')?.value||'').toLowerCase();
+  // Category chips
+  const catWrap=document.getElementById('ip-cats');
+  if(catWrap){
+    catWrap.innerHTML=`<button class="chip" onclick="_ipCat=0;ipRender()" style="background:${!_ipCat?'var(--p)':'#fff'};color:${!_ipCat?'#fff':'var(--t2)'};border-color:${!_ipCat?'var(--p)':'var(--sep)'}">Alle</button>`
+      +D.categories.map(c=>`<button class="chip" onclick="_ipCat=${c.id};ipRender()" style="background:${_ipCat===c.id?c.color:'#fff'};color:${_ipCat===c.id?'#fff':'var(--t2)'};border-color:${_ipCat===c.id?c.color:'var(--sep)'}">${c.emoji} ${e(c.name)}</button>`).join('');
+  }
+  // Item list
+  const listWrap=document.getElementById('ip-list');if(!listWrap)return;
+  const filtered=D.items.filter(i=>i.rent&&(!_ipCat||i.cid===_ipCat)&&(!q||(i.name+(i.desc||'')).toLowerCase().includes(q)));
+  if(!filtered.length){listWrap.innerHTML=`<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-text">Keine Gegenstände</div><div class="empty-sub">Andere Kategorie oder Suchbegriff versuchen</div></div>`;return;}
+  const s=rfSelStart,e_=rfSelEnd;
+  const curIid=rfLines[_ipIdx]?.iid;
+  listWrap.innerHTML=filtered.map(itm=>{
+    const c=cat(itm.cid)||{color:'#94A3B8',emoji:'📦',name:'–'};
+    const isSel=itm.id===curIid;
+    let avBadge='';
+    if(s&&e_){
+      const av=avail(itm.id,s,e_,1,window._rfEditId);
+      const free=Math.max(0,av.n);
+      avBadge=`<span style="font-size:12px;font-weight:700;padding:2px 8px;border-radius:10px;background:${free>0?'#DCFCE7':'#FEE2E2'};color:${free>0?'var(--ok)':'var(--err)'}">${free>0?`${free} frei`:'ausgebucht'}</span>`;
+    }
+    return `<div onclick="rfPickItem(${itm.id})" style="display:flex;align-items:center;gap:12px;padding:13px 14px;background:${isSel?'#EFF6FF':'#fff'};border-radius:14px;margin-bottom:8px;cursor:pointer;border:1.5px solid ${isSel?'var(--p)':'var(--sep)'}">
+      <div style="width:44px;height:44px;border-radius:12px;background:${c.color}18;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">${c.emoji}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;color:var(--t1);font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e(itm.name)}</div>
+        <div style="font-size:12px;color:var(--t2);margin-top:2px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span>${e(c.name)} · Bestand: ${itm.qty}×</span>${avBadge}
+        </div>
+      </div>
+      ${isSel?`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--p)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>`}
+    </div>`;
+  }).join('');
+}
+
+function rfPickItem(iid){
+  rfLines[_ipIdx]={...rfLines[_ipIdx],iid};
+  closeItemPicker();
+  rfRenderLines();
 }
 
 function rfAddLine(){rfLines.push({iid:0,qty:1});rfRenderLines();}
@@ -950,7 +1035,7 @@ function rfCalRender(){
   const sd=document.getElementById('rf-sd'),ed=document.getElementById('rf-ed');
   if(sd)sd.value=rfSelStart||'';
   if(ed)ed.value=rfSelEnd||'';
-  rfCalcAll();rfAvailAll();
+  rfCalcAll();rfAvailAll();rfUpdateQtyInd();
 }
 
 function rfCalTap(ds){
