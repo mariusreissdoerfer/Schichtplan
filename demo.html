@@ -801,7 +801,7 @@ function renderTimelineView(){
   <div style="height:8px"></div>`;
 
   // Scroll to today after render
-  setTimeout(()=>{const el=document.getElementById('tl-scroll');if(el)el.scrollLeft=${scrollLeft};},50);
+  setTimeout(()=>{const el=document.getElementById('tl-scroll');if(el)el.scrollLeft=scrollLeft;},50);
   return h;
 }
 
