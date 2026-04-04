@@ -25,15 +25,12 @@
   --r:16px;
 }
 *{-webkit-tap-highlight-color:transparent;box-sizing:border-box;-webkit-font-smoothing:antialiased}
-html,body{height:100%;overflow:hidden;background:var(--bg)}
+html{height:-webkit-fill-available}body{height:100vh;height:-webkit-fill-available;display:flex;flex-direction:column;overflow:hidden;margin:0;background:var(--bg)}
 body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",sans-serif;color:var(--t1);overscroll-behavior:none}
 input,select,textarea,button{font-family:inherit}
 input,select,textarea{font-size:16px!important;color:var(--t1)}
 ::-webkit-scrollbar{display:none}
-.page{position:absolute;inset:0;overflow-y:scroll;overflow-x:hidden;
-  -webkit-overflow-scrolling:touch;padding-bottom:calc(env(safe-area-inset-bottom,0px)+80px);
-  opacity:0;transition:opacity .2s ease;overscroll-behavior-y:contain}
-.page.active{opacity:1}
+#content{flex:1;overflow-y:scroll;overflow-x:hidden;-webkit-overflow-scrolling:touch;background:var(--bg);padding-bottom:calc(env(safe-area-inset-bottom,0px)+72px);opacity:1}
 
 /* Cards */
 .c{background:var(--card);border-radius:var(--r);overflow:hidden}
@@ -90,7 +87,7 @@ textarea.inp{resize:none}
 .sheet.open{transform:translateY(0)}
 .sheet-handle{width:36px;height:4px;border-radius:2px;background:#D1D5DB;margin:10px auto 4px}
 .sheet-title{font-size:18px;font-weight:700;padding:4px 20px 16px;color:var(--t1)}
-.sheet-body{overflow-y:scroll;-webkit-overflow-scrolling:touch;padding:0 20px;
+.sheet-body{overflow-y:scroll;-webkit-overflow-scrolling:touch;-webkit-transform:translateZ(0);padding:0 20px;
   padding-bottom:calc(env(safe-area-inset-bottom,0px)+20px);flex:1}
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:50;
   opacity:0;pointer-events:none;transition:opacity .3s;backdrop-filter:blur(4px)}
@@ -137,7 +134,7 @@ textarea.inp{resize:none}
   text-transform:uppercase;padding:24px 20px 8px;line-height:1}
 
 /* FAB */
-.fab{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px)+80px);right:20px;
+.fab{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px)+72px);right:20px;
   z-index:30;width:56px;height:56px;border-radius:28px;background:var(--p);
   color:#fff;border:none;box-shadow:0 4px 20px rgba(37,99,235,.5);
   font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;
@@ -217,20 +214,12 @@ textarea.inp{resize:none}
   </div>
 </div>
 
-<!-- APP SHELL -->
-<div style="position:fixed;inset:0;display:flex;flex-direction:column;overflow:hidden">
+<!-- APP SHELL: body IS the flex container -->
+<!-- CONTENT -->
+<div id="content"></div>
 
-  <!-- PAGES CONTAINER -->
-  <div style="flex:1;min-height:0;position:relative;overflow:hidden">
-    <div id="pg-dashboard" class="page"></div>
-    <div id="pg-items" class="page"></div>
-    <div id="pg-rentals" class="page"></div>
-    <div id="pg-warehouses" class="page"></div>
-    <div id="pg-more" class="page"></div>
-  </div>
-
-  <!-- BOTTOM NAV -->
-  <div style="background:#fff;border-top:1px solid var(--sep);flex-shrink:0;padding-bottom:env(safe-area-inset-bottom,0px)">
+<!-- BOTTOM NAV -->
+<div style="background:#fff;border-top:1px solid var(--sep);flex-shrink:0;padding-bottom:env(safe-area-inset-bottom,0px)">
     <div style="display:flex;height:56px">
       <div class="nav-item active" id="nav-dashboard" onclick="go('dashboard')">
         <div class="nav-dot"></div>
@@ -269,7 +258,6 @@ textarea.inp{resize:none}
         <span style="font-size:10px;font-weight:600">Mehr</span>
       </div>
     </div>
-  </div>
 </div>
 
 <!-- FAB -->
@@ -343,25 +331,24 @@ function avail(iid,s,e_,qty,excId=null){
 
 // ── NAVIGATE ─────────────────────────────────────────────────────────────────
 function go(tab){
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   curTab=tab;
-  document.getElementById(`pg-${tab}`).classList.add('active');
   document.getElementById(`nav-${tab}`).classList.add('active');
   document.getElementById('fab').style.display=(['items','rentals'].includes(tab))?'flex':'none';
   render(tab);
-  document.getElementById(`pg-${tab}`).scrollTop=0;
+  const c=document.getElementById('content');if(c)c.scrollTop=0;
 }
 
 function fabAction(){ curTab==='items'?openItemForm():openRentalForm(); }
 
 function render(tab){
-  const pg=document.getElementById(`pg-${tab}`);
-  if(tab==='dashboard') pg.innerHTML=renderDash();
-  else if(tab==='items') pg.innerHTML=renderItems();
-  else if(tab==='rentals') pg.innerHTML=renderRentals();
-  else if(tab==='warehouses') pg.innerHTML=renderWH();
-  else if(tab==='more') pg.innerHTML=renderMore();
+  const c=document.getElementById('content');
+  if(!c)return;
+  if(tab==='dashboard') c.innerHTML=renderDash();
+  else if(tab==='items') c.innerHTML=renderItems();
+  else if(tab==='rentals') c.innerHTML=renderRentals();
+  else if(tab==='warehouses') c.innerHTML=renderWH();
+  else if(tab==='more') c.innerHTML=renderMore();
 }
 
 // ── DASHBOARD ────────────────────────────────────────────────────────────────
