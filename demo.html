@@ -360,7 +360,7 @@ function render(tab){
   if(!c)return;
   if(tab==='dashboard') c.innerHTML=renderDash();
   else if(tab==='items') c.innerHTML=renderItems();
-  else if(tab==='rentals') c.innerHTML=renderRentals();
+  else if(tab==='rentals'){c.innerHTML=renderRentals();document.getElementById('fab').style.display=rentalView==='timeline'?'none':'flex';}
   else if(tab==='warehouses') c.innerHTML=renderWH();
   else if(tab==='more') c.innerHTML=renderMore();
 }
@@ -606,11 +606,10 @@ function renderRentals(){
   const list=rentalSeg==='alle'?D.rentals:D.rentals.filter(r=>r.status===rentalSeg);
   const cnt=s=>D.rentals.filter(r=>r.status===s).length;
   let h=`<div style="background:linear-gradient(135deg,#1E3A8A,#2563EB,#3B82F6);padding:max(16px,env(safe-area-inset-top,16px)) 16px 20px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-      <div style="font-size:22px;font-weight:800;color:#fff">Verleih</div>
-      <button onclick="rentalView='timeline';render('rentals')" style="padding:7px 14px;border-radius:20px;border:1.5px solid rgba(255,255,255,.6);background:transparent;color:#fff;font-size:13px;font-weight:700;cursor:pointer">
-        📅 Zeitleiste
-      </button>
+    <div style="font-size:22px;font-weight:800;color:#fff;margin-bottom:12px">Verleih</div>
+    <div style="display:flex;gap:6px;margin-bottom:12px">
+      <button onclick="rentalView='list';render('rentals')" style="flex:1;padding:9px 6px;border-radius:10px;border:none;background:rgba(255,255,255,1);color:var(--p);font-weight:700;font-size:13px;cursor:pointer">☰ Liste</button>
+      <button onclick="rentalView='timeline';render('rentals')" style="flex:1;padding:9px 6px;border-radius:10px;border:none;background:rgba(255,255,255,.2);color:#fff;font-weight:700;font-size:13px;cursor:pointer">📅 Zeitleiste</button>
     </div>
     <div class="seg">
       ${segs.map(s=>`<div class="seg-item${rentalSeg===s?' active':''}" onclick="rentalSeg='${s}';render('rentals')">${s==='alle'?`Alle ${D.rentals.length}`:s+(cnt(s)?` ${cnt(s)}`:'')} </div>`).join('')}
@@ -774,11 +773,10 @@ function renderTimelineView(){
   const scrollLeft=Math.max(0,(DAYS_BEFORE-2)*CELL);
 
   let h=`<div style="background:linear-gradient(135deg,#1E3A8A,#2563EB,#3B82F6);padding:max(16px,env(safe-area-inset-top,16px)) 16px 20px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-      <div style="font-size:22px;font-weight:800;color:#fff">Zeitleiste</div>
-      <button onclick="rentalView='list';render('rentals')" style="padding:7px 14px;border-radius:20px;border:1.5px solid rgba(255,255,255,.6);background:transparent;color:#fff;font-size:13px;font-weight:700;cursor:pointer">
-        ☰ Liste
-      </button>
+    <div style="font-size:22px;font-weight:800;color:#fff;margin-bottom:12px">Verleih</div>
+    <div style="display:flex;gap:6px;margin-bottom:12px">
+      <button onclick="rentalView='list';render('rentals')" style="flex:1;padding:9px 6px;border-radius:10px;border:none;background:rgba(255,255,255,.2);color:#fff;font-weight:700;font-size:13px;cursor:pointer">☰ Liste</button>
+      <button onclick="rentalView='timeline';render('rentals')" style="flex:1;padding:9px 6px;border-radius:10px;border:none;background:rgba(255,255,255,1);color:var(--p);font-weight:700;font-size:13px;cursor:pointer">📅 Zeitleiste</button>
     </div>
     <div style="font-size:13px;color:rgba(255,255,255,.7)">Aktive & reservierte Verleihe · ${rentable.length} Artikel</div>
   </div>
