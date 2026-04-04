@@ -2,798 +2,1011 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Vereinsinventar">
-<title>Vereinsinventar Demo</title>
+<title>Vereinsinventar</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
-  *{-webkit-tap-highlight-color:transparent;box-sizing:border-box}
-  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f8fafc;overscroll-behavior:none}
-  input,select,textarea{font-size:16px!important}
-  ::-webkit-scrollbar{display:none}
-  .safe-pb{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 72px)}
-  .nav-bar{padding-bottom:env(safe-area-inset-bottom,0px)}
-  .sheet{transition:transform .3s cubic-bezier(.32,.72,0,1)}
-  .sheet.hidden{transform:translateY(100%)}
-  .toast{animation:slideIn .3s ease,fadeOut .3s ease 2.7s forwards}
-  @keyframes slideIn{from{transform:translateY(-20px);opacity:0}to{transform:translateY(0);opacity:1}}
-  @keyframes fadeOut{to{opacity:0;pointer-events:none}}
-  .badge{display:inline-flex;align-items:center;padding:.2rem .55rem;border-radius:9999px;font-size:.7rem;font-weight:600}
-  .chip{display:inline-flex;align-items:center;padding:.3rem .75rem;border-radius:9999px;font-size:.8rem;cursor:pointer;border:1.5px solid;transition:all .15s}
-  .btn{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;padding:.7rem 1.1rem;border-radius:.85rem;font-weight:500;font-size:.9rem;cursor:pointer;transition:all .15s;border:none;outline:none}
-  .btn:active{transform:scale(.96)}
-  .card{background:white;border-radius:1.1rem;border:1px solid #f1f5f9;box-shadow:0 1px 3px rgba(0,0,0,.06)}
-  .input{width:100%;border:1.5px solid #e2e8f0;border-radius:.85rem;padding:.7rem 1rem;font-size:16px;background:white;outline:none;transition:border-color .15s;color:#1e293b}
-  .input:focus{border-color:#3b82f6}
-  .toggle{position:relative;width:3rem;height:1.5rem;background:#d1d5db;border-radius:9999px;cursor:pointer;transition:background .2s}
-  .toggle.on{background:#2563eb}
-  .toggle::after{content:'';position:absolute;top:.15rem;left:.15rem;width:1.2rem;height:1.2rem;background:white;border-radius:50%;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
-  .toggle.on::after{transform:translateX(1.5rem)}
+:root{
+  --bg:#F2F2F7;
+  --card:#FFFFFF;
+  --p:#2563EB;
+  --p2:#1D4ED8;
+  --pl:#EFF6FF;
+  --ok:#16A34A;
+  --warn:#D97706;
+  --err:#DC2626;
+  --t1:#0F172A;
+  --t2:#475569;
+  --t3:#94A3B8;
+  --sep:#E2E8F0;
+  --r:16px;
+}
+*{-webkit-tap-highlight-color:transparent;box-sizing:border-box;-webkit-font-smoothing:antialiased}
+html,body{height:100%;overflow:hidden;background:var(--bg)}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",sans-serif;color:var(--t1);overscroll-behavior:none}
+input,select,textarea,button{font-family:inherit}
+input,select,textarea{font-size:16px!important;color:var(--t1)}
+::-webkit-scrollbar{display:none}
+.page{position:absolute;inset:0;overflow-y:auto;overscroll-behavior:none;
+  -webkit-overflow-scrolling:touch;padding-bottom:calc(env(safe-area-inset-bottom,0px)+80px);
+  opacity:0;transition:opacity .2s ease}
+.page.active{opacity:1}
+
+/* Cards */
+.c{background:var(--card);border-radius:var(--r);overflow:hidden}
+.c-p{padding:16px}
+.c + .c{margin-top:10px}
+.shadow{box-shadow:0 2px 12px rgba(0,0,0,.08)}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  border-radius:14px;font-weight:600;font-size:15px;cursor:pointer;
+  border:none;outline:none;transition:transform .1s,opacity .1s;padding:13px 20px}
+.btn:active{transform:scale(.96);opacity:.9}
+.btn-p{background:var(--p);color:#fff}
+.btn-s{background:#F1F5F9;color:var(--t2)}
+.btn-d{background:#FEE2E2;color:var(--err)}
+.btn-g{background:transparent;color:var(--p);padding:8px 0}
+
+/* Inputs */
+.inp{width:100%;background:#F8FAFC;border:1.5px solid var(--sep);border-radius:12px;
+  padding:13px 14px;font-size:16px;outline:none;transition:border-color .2s,background .2s}
+.inp:focus{border-color:var(--p);background:#fff}
+textarea.inp{resize:none}
+.lbl{display:block;font-size:13px;font-weight:600;color:var(--t2);margin-bottom:5px;letter-spacing:.3px}
+.field{display:flex;flex-direction:column;gap:0}
+
+/* Badges */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;
+  border-radius:20px;font-size:12px;font-weight:700;letter-spacing:.3px;white-space:nowrap}
+.badge::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0}
+
+/* Toggle */
+.tgl{position:relative;width:51px;height:31px;background:#E5E7EB;border-radius:20px;
+  cursor:pointer;transition:background .2s;flex-shrink:0}
+.tgl.on{background:var(--p)}
+.tgl::after{content:'';position:absolute;top:2px;left:2px;width:27px;height:27px;
+  background:#fff;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,.25);transition:transform .2s}
+.tgl.on::after{transform:translateX(20px)}
+
+/* Nav */
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;cursor:pointer;padding:8px 4px;position:relative;transition:color .15s}
+.nav-item svg{transition:transform .15s}
+.nav-item.active{color:var(--p)}
+.nav-item:not(.active){color:#9CA3AF}
+.nav-dot{position:absolute;top:4px;width:4px;height:4px;border-radius:50%;
+  background:var(--p);opacity:0;transition:opacity .2s}
+.nav-item.active .nav-dot{opacity:1}
+
+/* Modal */
+.sheet{position:fixed;bottom:0;left:0;right:0;background:var(--card);
+  border-radius:24px 24px 0 0;z-index:60;display:flex;flex-direction:column;
+  max-height:94vh;box-shadow:0 -4px 30px rgba(0,0,0,.15);
+  transform:translateY(100%);transition:transform .35s cubic-bezier(.32,.72,0,1)}
+.sheet.open{transform:translateY(0)}
+.sheet-handle{width:36px;height:4px;border-radius:2px;background:#D1D5DB;margin:10px auto 4px}
+.sheet-title{font-size:18px;font-weight:700;padding:4px 20px 16px;color:var(--t1)}
+.sheet-body{overflow-y:auto;padding:0 20px;
+  padding-bottom:calc(env(safe-area-inset-bottom,0px)+20px);flex:1}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:50;
+  opacity:0;pointer-events:none;transition:opacity .3s;backdrop-filter:blur(4px)}
+.overlay.show{opacity:1;pointer-events:all}
+
+/* Segment */
+.seg{display:flex;background:#E9ECEF;border-radius:10px;padding:2px;gap:2px}
+.seg-item{flex:1;padding:7px 4px;border-radius:8px;font-size:13px;font-weight:600;
+  text-align:center;cursor:pointer;transition:background .2s,color .2s;color:var(--t2)}
+.seg-item.active{background:#fff;color:var(--t1);box-shadow:0 1px 4px rgba(0,0,0,.12)}
+
+/* Search */
+.search-wrap{position:relative}
+.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);pointer-events:none}
+.search-inp{padding-left:38px;padding-right:36px}
+.search-clear{position:absolute;right:10px;top:50%;transform:translateY(-50%);
+  background:#CBD5E1;border:none;border-radius:50%;width:20px;height:20px;
+  color:#fff;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+
+/* Chip */
+.chip{display:inline-flex;align-items:center;padding:6px 14px;border-radius:20px;
+  font-size:13px;font-weight:600;cursor:pointer;border:1.5px solid transparent;
+  white-space:nowrap;transition:all .15s}
+
+/* Stat card */
+.stat-card{background:var(--card);border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:8px}
+.stat-icon{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center}
+.stat-val{font-size:28px;font-weight:800;letter-spacing:-1px;line-height:1}
+.stat-lbl{font-size:13px;color:var(--t2);font-weight:500}
+.stat-sub{font-size:12px;color:var(--t3)}
+
+/* Item card */
+.item-row{display:flex;gap:12px;padding:14px;align-items:center}
+.item-icon{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.item-bar{width:3px;border-radius:2px;align-self:stretch;flex-shrink:0}
+
+/* List row */
+.list-row{display:flex;align-items:center;gap:12px;padding:14px 16px;
+  background:var(--card);border-bottom:1px solid var(--sep)}
+.list-row:last-child{border-bottom:none}
+
+/* Section header */
+.sec-hdr{font-size:13px;font-weight:700;color:var(--t3);letter-spacing:.6px;
+  text-transform:uppercase;padding:24px 20px 8px;line-height:1}
+
+/* FAB */
+.fab{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px)+80px);right:20px;
+  z-index:30;width:56px;height:56px;border-radius:28px;background:var(--p);
+  color:#fff;border:none;box-shadow:0 4px 20px rgba(37,99,235,.5);
+  font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:transform .15s,box-shadow .15s}
+.fab:active{transform:scale(.92);box-shadow:0 2px 10px rgba(37,99,235,.4)}
+
+/* Header */
+.hdr{position:sticky;top:0;z-index:20;
+  background:linear-gradient(135deg,#1E40AF,#2563EB,#3B82F6);
+  padding:max(14px,env(safe-area-inset-top,14px)) 16px 14px;
+  display:flex;align-items:center;gap:12px}
+
+/* Animations */
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.fadeUp{animation:fadeUp .3s ease both}
+@keyframes toastIn{from{opacity:0;transform:translateY(-10px) scale(.95)}to{opacity:1;transform:none}}
+@keyframes toastOut{to{opacity:0;transform:translateY(-6px);pointer-events:none}}
+.toast-el{animation:toastIn .3s ease,toastOut .3s 2.8s forwards}
+
+/* Divider */
+.divider{height:1px;background:var(--sep);margin:0 16px}
+
+/* Settings row */
+.srow{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--card);
+  border-bottom:1px solid var(--sep);cursor:pointer;transition:background .15s}
+.srow:active{background:#F8FAFC}
+.srow:last-child{border-bottom:none}
+.srow-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;
+  justify-content:center;font-size:17px;flex-shrink:0}
+
+/* Pull indicator */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:60px 20px;gap:12px}
+.empty-icon{font-size:56px;opacity:.35}
+.empty-text{font-size:17px;font-weight:600;color:var(--t2);text-align:center}
+.empty-sub{font-size:14px;color:var(--t3);text-align:center}
+
+/* iOS-style group */
+.igroup{border-radius:var(--r);overflow:hidden;background:var(--card)}
+
+/* Confirm dialog */
+.dlg{background:#fff;border-radius:20px;width:280px;text-align:center;
+  overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.dlg-btns{display:flex;border-top:1px solid var(--sep)}
+.dlg-btn{flex:1;padding:14px;font-size:17px;cursor:pointer;background:none;border:none;
+  font-family:inherit;transition:background .15s}
+.dlg-btn:active{background:#F8FAFC}
+.dlg-btn + .dlg-btn{border-left:1px solid var(--sep);color:var(--err);font-weight:700}
 </style>
 </head>
 <body>
 
 <!-- TOAST -->
-<div id="toast-container" class="fixed top-4 left-1/2 z-50 flex flex-col gap-2" style="transform:translateX(-50%);width:calc(100% - 2rem);max-width:360px;pointer-events:none"></div>
+<div id="toasts" style="position:fixed;top:max(16px,env(safe-area-inset-top,16px));left:50%;transform:translateX(-50%);z-index:100;display:flex;flex-direction:column;gap:8px;width:calc(100% - 32px);max-width:360px;pointer-events:none"></div>
 
-<!-- MODAL OVERLAY -->
-<div id="overlay" class="fixed inset-0 bg-black/50 z-30 hidden" onclick="closeModal()"></div>
+<!-- OVERLAY -->
+<div id="ov" class="overlay" onclick="closeModal()"></div>
 
-<!-- MODAL SHEET -->
-<div id="modal" class="sheet hidden fixed bottom-0 left-0 right-0 z-40 bg-white rounded-t-3xl shadow-2xl flex flex-col" style="max-height:92vh">
-  <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100 flex-shrink-0">
-    <h2 id="modal-title" class="text-lg font-semibold text-slate-900"></h2>
-    <button onclick="closeModal()" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 text-xl leading-none">&times;</button>
-  </div>
-  <div id="modal-body" class="overflow-y-auto flex-1 p-5" style="padding-bottom:calc(env(safe-area-inset-bottom,0px) + 1.25rem)"></div>
+<!-- MODAL -->
+<div id="modal" class="sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title" id="mtitle"></div>
+  <div class="sheet-body" id="mbody"></div>
 </div>
 
-<!-- CONFIRM DIALOG -->
-<div id="confirm-overlay" class="fixed inset-0 bg-black/50 z-50 hidden flex items-end sm:items-center justify-center p-4">
-  <div class="bg-white rounded-2xl w-full max-w-sm p-5">
-    <h3 id="confirm-title" class="font-semibold text-slate-900 mb-2"></h3>
-    <p id="confirm-msg" class="text-sm text-slate-500 mb-5"></p>
-    <div class="flex gap-3">
-      <button onclick="document.getElementById('confirm-overlay').classList.add('hidden')" class="btn flex-1" style="background:#f1f5f9;color:#475569">Abbrechen</button>
-      <button id="confirm-ok" class="btn flex-1" style="background:#ef4444;color:white">Löschen</button>
+<!-- CONFIRM -->
+<div id="cdlg" style="position:fixed;inset:0;z-index:80;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.5);backdrop-filter:blur(6px)">
+  <div class="dlg fadeUp">
+    <div style="padding:24px 20px 16px">
+      <div id="cdlg-t" style="font-size:17px;font-weight:700;color:var(--t1);margin-bottom:8px"></div>
+      <div id="cdlg-m" style="font-size:15px;color:var(--t2);line-height:1.5"></div>
+    </div>
+    <div class="dlg-btns">
+      <button class="dlg-btn" onclick="document.getElementById('cdlg').style.display='none'">Abbrechen</button>
+      <button class="dlg-btn" id="cdlg-ok">Löschen</button>
     </div>
   </div>
 </div>
 
-<!-- APP -->
-<div id="app" class="min-h-screen flex flex-col">
-  <!-- HEADER -->
-  <header class="bg-blue-600 text-white px-4 py-3 flex items-center gap-3 sticky top-0 z-20" style="padding-top:max(12px,env(safe-area-inset-top,12px))">
-    <span style="font-size:1.5rem">📦</span>
-    <div>
-      <div class="font-bold text-base leading-tight">Vereinsinventar</div>
-      <div id="header-sub" class="text-blue-200 text-xs">Demo</div>
-    </div>
-  </header>
+<!-- APP SHELL -->
+<div style="position:fixed;inset:0;display:flex;flex-direction:column;overflow:hidden">
 
-  <!-- CONTENT -->
-  <main id="content" class="flex-1 safe-pb"></main>
+  <!-- PAGES CONTAINER -->
+  <div style="flex:1;position:relative;overflow:hidden">
+    <div id="pg-dashboard" class="page"></div>
+    <div id="pg-items" class="page"></div>
+    <div id="pg-rentals" class="page"></div>
+    <div id="pg-warehouses" class="page"></div>
+    <div id="pg-more" class="page"></div>
+  </div>
 
   <!-- BOTTOM NAV -->
-  <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-20 nav-bar">
-    <div class="flex justify-around items-center h-16">
-      <button onclick="navigate('dashboard')" class="nav-btn flex flex-col items-center gap-0.5 flex-1 py-2" data-tab="dashboard">
-        <span style="font-size:1.35rem">🏠</span><span class="text-xs font-medium">Übersicht</span>
-      </button>
-      <button onclick="navigate('items')" class="nav-btn flex flex-col items-center gap-0.5 flex-1 py-2" data-tab="items">
-        <span style="font-size:1.35rem">📦</span><span class="text-xs font-medium">Inventar</span>
-      </button>
-      <button onclick="navigate('rentals')" class="nav-btn flex flex-col items-center gap-0.5 flex-1 py-2" data-tab="rentals">
-        <span style="font-size:1.35rem">📅</span><span class="text-xs font-medium">Verleih</span>
-      </button>
-      <button onclick="navigate('warehouses')" class="nav-btn flex flex-col items-center gap-0.5 flex-1 py-2" data-tab="warehouses">
-        <span style="font-size:1.35rem">🏭</span><span class="text-xs font-medium">Lager</span>
-      </button>
-      <button onclick="navigate('more')" class="nav-btn flex flex-col items-center gap-0.5 flex-1 py-2" data-tab="more">
-        <span style="font-size:1.35rem">⚙️</span><span class="text-xs font-medium">Mehr</span>
-      </button>
+  <div style="background:#fff;border-top:1px solid var(--sep);flex-shrink:0;padding-bottom:env(safe-area-inset-bottom,0px)">
+    <div style="display:flex;height:56px">
+      <div class="nav-item active" id="nav-dashboard" onclick="go('dashboard')">
+        <div class="nav-dot"></div>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+        <span style="font-size:10px;font-weight:600">Übersicht</span>
+      </div>
+      <div class="nav-item" id="nav-items" onclick="go('items')">
+        <div class="nav-dot"></div>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+          <polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
+        </svg>
+        <span style="font-size:10px;font-weight:600">Inventar</span>
+      </div>
+      <div class="nav-item" id="nav-rentals" onclick="go('rentals')">
+        <div class="nav-dot"></div>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+        </svg>
+        <span style="font-size:10px;font-weight:600">Verleih</span>
+      </div>
+      <div class="nav-item" id="nav-warehouses" onclick="go('warehouses')">
+        <div class="nav-dot"></div>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+        </svg>
+        <span style="font-size:10px;font-weight:600">Lager</span>
+      </div>
+      <div class="nav-item" id="nav-more" onclick="go('more')">
+        <div class="nav-dot"></div>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
+        </svg>
+        <span style="font-size:10px;font-weight:600">Mehr</span>
+      </div>
     </div>
-  </nav>
+  </div>
 </div>
 
+<!-- FAB -->
+<button class="fab" id="fab" onclick="fabAction()" title="Neu hinzufügen">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+  </svg>
+</button>
+
 <script>
-// ─── DEMO DATA ────────────────────────────────────────────────────────────────
-const DEMO = {
+// ── DATA ─────────────────────────────────────────────────────────────────────
+const DEMO={
   categories:[
-    {id:1,name:'Zelte & Unterkünfte',color:'#f59e0b'},
-    {id:2,name:'Möbel',color:'#10b981'},
-    {id:3,name:'Elektro',color:'#3b82f6'},
-    {id:4,name:'Küche & Catering',color:'#ef4444'},
-    {id:5,name:'Transport & Lagerung',color:'#8b5cf6'},
+    {id:1,name:'Zelte & Unterkünfte',color:'#F59E0B',emoji:'⛺'},
+    {id:2,name:'Möbel',color:'#10B981',emoji:'🪑'},
+    {id:3,name:'Elektro',color:'#3B82F6',emoji:'⚡'},
+    {id:4,name:'Küche & Catering',color:'#EF4444',emoji:'🍳'},
+    {id:5,name:'Transport & Lagerung',color:'#8B5CF6',emoji:'📦'},
   ],
   warehouses:[
     {id:1,name:'Lagerhalle 1',address:'Musterstraße 1, 12345 Musterstadt'},
     {id:2,name:'Lagerhalle 2',address:'Nebenstraße 5, 12345 Musterstadt'},
   ],
   locations:[
-    {id:1,warehouse_id:1,name:'Eingangsbereich'},{id:2,warehouse_id:1,name:'Regal A'},
-    {id:3,warehouse_id:1,name:'Regal B'},{id:4,warehouse_id:2,name:'Hauptfläche'},
-    {id:5,warehouse_id:2,name:'Außenbereich'},
+    {id:1,wid:1,name:'Eingangsbereich'},{id:2,wid:1,name:'Regal A'},
+    {id:3,wid:1,name:'Regal B'},{id:4,wid:2,name:'Hauptfläche'},
+    {id:5,wid:2,name:'Außenbereich'},
   ],
   items:[
-    {id:1,name:'Festzelt 6×12m',description:'Weißes Partyzelt mit 4 Seitenwänden und Eingang',category_id:1,quantity:1,condition:'gut',purchase_price:1200,is_rentable:true,daily_rate:50,weekend_rate:80,location_id:4,notes:'Heringe und Spanngurte separat im Kasten'},
-    {id:2,name:'Biertisch-Set (4+8)',description:'4 Biertische + 8 Bierbank-Garnituren, klappbar',category_id:2,quantity:5,condition:'gut',purchase_price:80,is_rentable:true,daily_rate:10,weekend_rate:15,location_id:2,notes:''},
-    {id:3,name:'Grillwagen groß',description:'Holzkohlegrillwagen mit Rädern, 120cm Grillrost',category_id:4,quantity:2,condition:'sehr gut',purchase_price:350,is_rentable:true,daily_rate:20,weekend_rate:30,location_id:1,notes:'Reinigung nach Verleih obligatorisch'},
-    {id:4,name:'Verlängerungskabel 50m',description:'Gelbes 16A Kabel mit Mehrfachsteckdose',category_id:3,quantity:3,condition:'gut',purchase_price:45,is_rentable:true,daily_rate:5,weekend_rate:8,location_id:3,notes:''},
-    {id:5,name:'IBC-Container 1000L',description:'Kunststoff-Gitterbox-Container für Wasser',category_id:5,quantity:4,condition:'befriedigend',purchase_price:180,is_rentable:false,daily_rate:null,weekend_rate:null,location_id:5,notes:'Nicht für Lebensmittel geeignet'},
-    {id:6,name:'Kunststoffbecher 0,4L',description:'Transparente Wiederverwendungsbecher',category_id:4,quantity:250,condition:'gut',purchase_price:0.8,is_rentable:true,daily_rate:15,weekend_rate:20,location_id:2,notes:'Preis pauschal, egal wie viele'},
+    {id:1,name:'Festzelt 6×12m',desc:'Weißes Partyzelt mit 4 Seitenwänden',cid:1,qty:1,cond:'gut',price:1200,rent:true,day:50,wknd:80,lid:4,notes:'Heringe separat im Zubehörkasten'},
+    {id:2,name:'Biertisch-Set (4+8)',desc:'4 Tische + 8 Bierbänke, klappbar',cid:2,qty:5,cond:'gut',price:80,rent:true,day:10,wknd:15,lid:2,notes:''},
+    {id:3,name:'Grillwagen groß',desc:'Holzkohlegrillwagen, 120 cm Grillrost',cid:4,qty:2,cond:'sehr gut',price:350,rent:true,day:20,wknd:30,lid:1,notes:'Reinigung nach Verleih nötig'},
+    {id:4,name:'Verlängerungskabel 50m',desc:'Gelbes 16A Kabel mit Mehrfachsteckdose',cid:3,qty:3,cond:'gut',price:45,rent:true,day:5,wknd:8,lid:3,notes:''},
+    {id:5,name:'IBC-Container 1000L',desc:'Kunststoff-Gitterbox für Wasser',cid:5,qty:4,cond:'befriedigend',price:180,rent:false,day:null,wknd:null,lid:5,notes:'Nicht für Lebensmittel'},
+    {id:6,name:'Kunststoffbecher 0,4L',desc:'Transparente Wiederverwendungsbecher',cid:4,qty:250,cond:'gut',price:0.8,rent:true,day:15,wknd:20,lid:2,notes:'Preis pauschal'},
   ],
   rentals:[
-    {id:1,item_id:1,borrower_name:'SVG Musterclub',borrower_phone:'0151 12345678',borrower_email:'kontakt@svg-musterclub.de',borrower_address:'Vereinsstraße 10, 12345 Musterstadt',start_date:'2026-03-28',end_date:'2026-04-01',quantity:1,status:'ausgeliehen',price_type:'daily',total_price:250,notes:'Aufbau Do, Abbau Mi'},
-    {id:2,item_id:2,borrower_name:'Familie Müller',borrower_phone:'0170 9876543',borrower_email:'',borrower_address:'Gartenweg 3, 12345 Musterstadt',start_date:'2026-04-05',end_date:'2026-04-06',quantity:2,status:'reserviert',price_type:'weekend',total_price:30,notes:'Geburtstag im Garten'},
-    {id:3,item_id:4,borrower_name:'Brauerei Hopfen GmbH',borrower_phone:'089 445566',borrower_email:'events@brauerei-hopfen.de',borrower_address:'Brauereiweg 1, 80333 München',start_date:'2026-04-10',end_date:'2026-04-12',quantity:2,status:'reserviert',price_type:'daily',total_price:30,notes:''},
-    {id:4,item_id:3,borrower_name:'Schulverein Grundschule',borrower_phone:'',borrower_email:'schulverein@gs-muster.de',borrower_address:'Schulstraße 1, 12345 Musterstadt',start_date:'2026-03-20',end_date:'2026-03-21',quantity:1,status:'zurückgegeben',price_type:'weekend',total_price:30,notes:'Frühlingsfest'},
+    {id:1,iid:1,name:'SVG Musterclub',phone:'0151 12345678',email:'kontakt@svg-musterclub.de',addr:'Vereinsstraße 10, 12345 Musterstadt',s:'2026-03-28',e:'2026-04-01',qty:1,status:'ausgeliehen',pt:'daily',total:250,notes:'Aufbau Do, Abbau Mi'},
+    {id:2,iid:2,name:'Familie Müller',phone:'0170 9876543',email:'',addr:'Gartenweg 3, 12345 Musterstadt',s:'2026-04-05',e:'2026-04-06',qty:2,status:'reserviert',pt:'weekend',total:30,notes:'Geburtstagsfeier im Garten'},
+    {id:3,iid:4,name:'Brauerei Hopfen GmbH',phone:'089 445566',email:'events@brauerei-hopfen.de',addr:'Brauereiweg 1, 80333 München',s:'2026-04-10',e:'2026-04-12',qty:2,status:'reserviert',pt:'daily',total:30,notes:''},
+    {id:4,iid:3,name:'Schulverein GS Muster',phone:'',email:'sv@gs-muster.de',addr:'Schulstraße 1, 12345 Musterstadt',s:'2026-03-20',e:'2026-03-21',qty:1,status:'zurückgegeben',pt:'weekend',total:30,notes:'Frühlingsfest'},
   ]
 };
 
-// ─── STATE ───────────────────────────────────────────────────────────────────
-let S = loadState();
-let tab = 'dashboard';
-let itemFilter = '';
-let itemCatFilter = 0;
-let rentalFilter = 'alle';
-let nextId = getNextId();
+// ── STATE ────────────────────────────────────────────────────────────────────
+let D = (() => { try { const r=JSON.parse(localStorage.getItem('vi2')); return r||JSON.parse(JSON.stringify(DEMO)); } catch(e){ return JSON.parse(JSON.stringify(DEMO)); }})();
+let curTab='dashboard', itemSearch='', itemCat=0, rentalSeg='alle', _nid=0;
+function nid(){ if(!_nid){ const all=[...D.items,...D.categories,...D.warehouses,...D.locations,...D.rentals]; _nid=all.length?Math.max(...all.map(x=>x.id))+1:100; } return _nid++; }
+function save(){ try{ localStorage.setItem('vi2',JSON.stringify(D)); }catch(e){} }
 
-function loadState(){
-  try{
-    const raw = localStorage.getItem('vi_demo');
-    if(raw) return JSON.parse(raw);
-  }catch(e){}
-  return JSON.parse(JSON.stringify(DEMO));
-}
-function save(){
-  try{ localStorage.setItem('vi_demo',JSON.stringify(S)); }catch(e){}
-}
-function getNextId(){
-  const all=[...S.items,...S.categories,...S.warehouses,...S.locations,...S.rentals];
-  return all.length ? Math.max(...all.map(x=>x.id))+1 : 100;
-}
-function uid(){ return nextId++; }
-
-// ─── NAVIGATE ─────────────────────────────────────────────────────────────────
-function navigate(t){
-  tab=t;
-  document.querySelectorAll('.nav-btn').forEach(b=>{
-    const active = b.dataset.tab===t;
-    b.style.color = active ? '#2563eb' : '#94a3b8';
-  });
-  document.getElementById('header-sub').textContent = {
-    dashboard:'Übersicht',items:'Inventar',rentals:'Verleih',warehouses:'Lagerhallen',more:'Einstellungen'
-  }[t]||'';
-  render();
+// ── HELPERS ──────────────────────────────────────────────────────────────────
+const e=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const eu=s=>String(s||'').replace(/'/g,"\\'");
+const fmt=n=>n!=null?Number(n).toLocaleString('de-DE',{style:'currency',currency:'EUR'}):'–';
+const fdate=d=>{if(!d)return'–';const[y,m,dd]=d.split('-');return`${dd}.${m}.${y.slice(2)}`;};
+const days=(a,b)=>Math.max(1,Math.ceil((new Date(b)-new Date(a))/864e5)+1);
+const cat=id=>D.categories.find(x=>x.id===id);
+const loc=id=>D.locations.find(x=>x.id===id);
+const wh=id=>D.warehouses.find(x=>x.id===id);
+const item=id=>D.items.find(x=>x.id===id);
+const locFull=id=>{const l=loc(id);if(!l)return'–';const w=wh(l.wid);return w?`${w.name} › ${l.name}`:l.name;};
+const condCol=c=>({neuwertig:'#16A34A','sehr gut':'#16A34A',gut:'#2563EB',befriedigend:'#D97706','reparaturbedürftig':'#DC2626'}[c]||'#94A3B8');
+const condBg=c=>({neuwertig:'#DCFCE7','sehr gut':'#DCFCE7',gut:'#DBEAFE',befriedigend:'#FEF3C7','reparaturbedürftig':'#FEE2E2'}[c]||'#F1F5F9');
+const statusCol=s=>({reserviert:'#D97706',ausgeliehen:'#2563EB',zurückgegeben:'#16A34A',storniert:'#94A3B8'}[s]||'#94A3B8');
+const statusBg=s=>({reserviert:'#FEF3C7',ausgeliehen:'#DBEAFE',zurückgegeben:'#DCFCE7',storniert:'#F1F5F9'}[s]||'#F1F5F9');
+function avail(iid,s,e_,qty,excId=null){
+  const itm=item(iid);if(!itm)return{ok:false,n:0,total:0};
+  const used=D.rentals.filter(r=>r.iid===iid&&r.id!==excId&&!['zurückgegeben','storniert'].includes(r.status)&&r.s<=e_&&r.e>=s).reduce((a,r)=>a+r.qty,0);
+  return{ok:(itm.qty-used)>=qty,n:itm.qty-used,total:itm.qty};
 }
 
-// ─── RENDER ──────────────────────────────────────────────────────────────────
-function render(){
-  const c = document.getElementById('content');
-  if(tab==='dashboard') c.innerHTML = renderDashboard();
-  else if(tab==='items') c.innerHTML = renderItems();
-  else if(tab==='rentals') c.innerHTML = renderRentals();
-  else if(tab==='warehouses') c.innerHTML = renderWarehouses();
-  else if(tab==='more') c.innerHTML = renderMore();
+// ── NAVIGATE ─────────────────────────────────────────────────────────────────
+function go(tab){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  curTab=tab;
+  document.getElementById(`pg-${tab}`).classList.add('active');
+  document.getElementById(`nav-${tab}`).classList.add('active');
+  document.getElementById('fab').style.display=(['items','rentals'].includes(tab))?'flex':'none';
+  render(tab);
+  document.getElementById(`pg-${tab}`).scrollTop=0;
 }
 
-// ─── HELPERS ─────────────────────────────────────────────────────────────────
-function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function fmt(n){ return n!=null ? Number(n).toLocaleString('de-DE',{style:'currency',currency:'EUR'}) : '–'; }
-function fmtDate(d){ if(!d) return '–'; const p=d.split('-'); return `${p[2]}.${p[1]}.${p[0].slice(2)}`; }
-function daysBetween(a,b){ return Math.ceil((new Date(b)-new Date(a))/(864e5))+1; }
-function catName(id){ const c=S.categories.find(x=>x.id===id); return c?c.name:'–'; }
-function catColor(id){ const c=S.categories.find(x=>x.id===id); return c?c.color:'#94a3b8'; }
-function locName(id){ const l=S.locations.find(x=>x.id===id); if(!l) return '–'; const w=S.warehouses.find(x=>x.id===l.warehouse_id); return w?`${w.name} › ${l.name}`:l.name; }
-function itemName(id){ const i=S.items.find(x=>x.id===id); return i?i.name:'–'; }
-function condColor(c){ return {neuwertig:'#10b981','sehr gut':'#10b981',gut:'#3b82f6',befriedigend:'#f59e0b','reparaturbedürftig':'#ef4444'}[c]||'#94a3b8'; }
-function statusColor(s){ return {reserviert:'#f59e0b',ausgeliehen:'#3b82f6',zurückgegeben:'#10b981',storniert:'#94a3b8'}[s]||'#94a3b8'; }
-function statusBg(s){ return {reserviert:'#fef3c7',ausgeliehen:'#dbeafe',zurückgegeben:'#dcfce7',storniert:'#f1f5f9'}[s]||'#f1f5f9'; }
-function checkAvail(itemId,start,end,qty,excludeId=null){
-  const item = S.items.find(x=>x.id===itemId); if(!item) return {ok:false,avail:0};
-  const taken = S.rentals.filter(r=>r.item_id===itemId && r.id!==excludeId && !['zurückgegeben','storniert'].includes(r.status) && r.start_date<=end && r.end_date>=start).reduce((a,r)=>a+r.quantity,0);
-  const avail = item.quantity - taken;
-  return {ok:avail>=qty, avail, total:item.quantity};
+function fabAction(){ curTab==='items'?openItemForm():openRentalForm(); }
+
+function render(tab){
+  const pg=document.getElementById(`pg-${tab}`);
+  if(tab==='dashboard') pg.innerHTML=renderDash();
+  else if(tab==='items') pg.innerHTML=renderItems();
+  else if(tab==='rentals') pg.innerHTML=renderRentals();
+  else if(tab==='warehouses') pg.innerHTML=renderWH();
+  else if(tab==='more') pg.innerHTML=renderMore();
 }
 
-// ─── DASHBOARD ───────────────────────────────────────────────────────────────
-function renderDashboard(){
-  const activeRentals = S.rentals.filter(r=>r.status==='ausgeliehen');
-  const reserved = S.rentals.filter(r=>r.status==='reserviert');
-  const totalItems = S.items.reduce((a,i)=>a+i.quantity,0);
-  const totalValue = S.items.reduce((a,i)=>a+(i.purchase_price||0)*i.quantity,0);
+// ── DASHBOARD ────────────────────────────────────────────────────────────────
+function renderDash(){
+  const active=D.rentals.filter(r=>r.status==='ausgeliehen');
+  const res=D.rentals.filter(r=>r.status==='reserviert');
+  const totalQty=D.items.reduce((a,i)=>a+i.qty,0);
+  const totalVal=D.items.reduce((a,i)=>a+(i.price||0)*i.qty,0);
+  const today=new Date().toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'});
 
-  let html = `<div class="p-4 space-y-4">
-  <div class="grid grid-cols-2 gap-3">
-    <div class="card p-4"><div class="text-2xl font-bold text-slate-900">${S.items.length}</div><div class="text-sm text-slate-500">Gegenstände</div><div class="text-xs text-slate-400">${totalItems} Einheiten</div></div>
-    <div class="card p-4"><div class="text-2xl font-bold text-blue-600">${activeRentals.length}</div><div class="text-sm text-slate-500">Ausgeliehen</div><div class="text-xs text-slate-400">${reserved.length} reserviert</div></div>
-    <div class="card p-4"><div class="text-2xl font-bold text-slate-900">${S.warehouses.length}</div><div class="text-sm text-slate-500">Lagerhallen</div><div class="text-xs text-slate-400">${S.locations.length} Lagerplätze</div></div>
-    <div class="card p-4"><div class="text-2xl font-bold text-slate-900">${S.categories.length}</div><div class="text-sm text-slate-500">Kategorien</div></div>
+  let h=`<div style="background:linear-gradient(135deg,#1E3A8A,#2563EB,#3B82F6);padding:max(16px,env(safe-area-inset-top,16px)) 20px 24px">
+    <div style="font-size:13px;color:rgba(255,255,255,.7);font-weight:500;margin-bottom:2px">${e(today)}</div>
+    <div style="font-size:28px;font-weight:800;color:#fff;letter-spacing:-.5px">Vereinsinventar</div>
+    <div style="font-size:14px;color:rgba(255,255,255,.7);margin-top:2px">Demo-Version</div>
+  </div>
+  <div style="padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:12px" class="fadeUp">
+    <div class="stat-card shadow">
+      <div class="stat-icon" style="background:#EFF6FF"><span style="font-size:20px">📦</span></div>
+      <div class="stat-val" style="color:var(--p)">${D.items.length}</div>
+      <div class="stat-lbl">Gegenstände</div>
+      <div class="stat-sub">${totalQty} Einheiten</div>
+    </div>
+    <div class="stat-card shadow">
+      <div class="stat-icon" style="background:#DBEAFE"><span style="font-size:20px">📤</span></div>
+      <div class="stat-val" style="color:#7C3AED">${active.length}</div>
+      <div class="stat-lbl">Ausgeliehen</div>
+      <div class="stat-sub">${res.length} reserviert</div>
+    </div>
+    <div class="stat-card shadow">
+      <div class="stat-icon" style="background:#DCFCE7"><span style="font-size:20px">🏭</span></div>
+      <div class="stat-val" style="color:var(--ok)">${D.warehouses.length}</div>
+      <div class="stat-lbl">Lagerhallen</div>
+      <div class="stat-sub">${D.locations.length} Lagerplätze</div>
+    </div>
+    <div class="stat-card shadow" onclick="go('items')" style="cursor:pointer">
+      <div class="stat-icon" style="background:#FEF3C7"><span style="font-size:20px">💶</span></div>
+      <div class="stat-val" style="color:var(--warn);font-size:20px">${totalVal>0?fmt(totalVal):'–'}</div>
+      <div class="stat-lbl">Inventarwert</div>
+      <div class="stat-sub">Einkaufspreise</div>
+    </div>
   </div>`;
 
-  if(totalValue>0) html+=`<div class="card p-4 flex items-center gap-3" style="background:linear-gradient(135deg,#eff6ff,#dbeafe);border-color:#bfdbfe"><span style="font-size:1.4rem">📈</span><div><div class="text-sm text-blue-700">Inventarwert gesamt</div><div class="text-xl font-bold text-blue-800">${fmt(totalValue)}</div></div></div>`;
-
-  if(activeRentals.length){
-    html+=`<div><div class="font-semibold text-slate-800 mb-2 flex items-center gap-2"><span>🔴</span> Aktuell ausgeliehen</div><div class="space-y-2">`;
-    activeRentals.forEach(r=>{
-      html+=`<div class="card p-3 flex items-center justify-between gap-2" onclick="navigate('rentals')">
-        <div class="flex-1 min-w-0"><div class="font-medium text-slate-900 truncate">${esc(itemName(r.item_id))}</div><div class="text-xs text-slate-500">${esc(r.borrower_name)} · ${r.quantity}×</div></div>
-        <div class="text-right flex-shrink-0"><span class="badge" style="background:${statusBg(r.status)};color:${statusColor(r.status)}">${r.status}</span><div class="text-xs text-slate-400 mt-1">bis ${fmtDate(r.end_date)}</div></div>
-      </div>`;
-    });
-    html+=`</div></div>`;
-  }
-  if(reserved.length){
-    html+=`<div><div class="font-semibold text-slate-800 mb-2 flex items-center gap-2"><span>🟡</span> Bevorstehend</div><div class="space-y-2">`;
-    reserved.forEach(r=>{
-      html+=`<div class="card p-3 flex items-center justify-between gap-2" onclick="navigate('rentals')">
-        <div class="flex-1 min-w-0"><div class="font-medium text-slate-900 truncate">${esc(itemName(r.item_id))}</div><div class="text-xs text-slate-500">${esc(r.borrower_name)} · ${r.quantity}×</div></div>
-        <div class="text-right flex-shrink-0"><span class="badge" style="background:${statusBg(r.status)};color:${statusColor(r.status)}">${r.status}</span><div class="text-xs text-slate-400 mt-1">${fmtDate(r.start_date)}</div></div>
-      </div>`;
-    });
-    html+=`</div></div>`;
-  }
-  if(!activeRentals.length&&!reserved.length) html+=`<div class="card p-8 text-center"><div style="font-size:3rem">✅</div><div class="text-slate-400 mt-2">Keine aktiven Verleihe</div></div>`;
-  html+=`</div>`;
-  return html;
-}
-
-// ─── ITEMS PAGE ──────────────────────────────────────────────────────────────
-function renderItems(){
-  const items = S.items.filter(i=>{
-    const ms = (i.name+' '+(i.description||'')).toLowerCase().includes(itemFilter.toLowerCase());
-    const mc = !itemCatFilter || i.category_id===itemCatFilter;
-    return ms&&mc;
-  });
-  let html = `<div>
-  <div class="sticky bg-slate-50 z-10 px-4 py-3 space-y-2 border-b border-slate-100" style="top:0">
-    <div class="flex gap-2">
-      <div class="relative flex-1">
-        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
-        <input class="input pl-9 py-2.5" placeholder="Suchen..." value="${esc(itemFilter)}" oninput="itemFilter=this.value;render()">
-      </div>
-      <button onclick="openItemForm()" class="btn" style="background:#2563eb;color:white;padding:.6rem .9rem">
-        <span style="font-size:1.2rem;line-height:1">+</span>
-      </button>
-    </div>
-    <div class="flex gap-2 overflow-x-auto pb-1">
-      <button onclick="itemCatFilter=0;render()" class="chip flex-shrink-0" style="background:${!itemCatFilter?'#2563eb':'white'};color:${!itemCatFilter?'white':'#475569'};border-color:${!itemCatFilter?'#2563eb':'#e2e8f0'}">Alle</button>
-      ${S.categories.map(c=>`<button onclick="itemCatFilter=${c.id};render()" class="chip flex-shrink-0" style="background:${itemCatFilter===c.id?c.color:'white'};color:${itemCatFilter===c.id?'white':'#475569'};border-color:${itemCatFilter===c.id?c.color:'#e2e8f0'}">${esc(c.name)}</button>`).join('')}
-    </div>
-    <div class="text-xs text-slate-400">${items.length} von ${S.items.length} Gegenständen</div>
-  </div>
-  <div class="p-4 space-y-3">`;
-
-  if(!items.length) html+=`<div class="card p-10 text-center"><div style="font-size:3rem">📦</div><div class="text-slate-400 mt-2">Keine Gegenstände</div></div>`;
-
-  items.forEach(item=>{
-    const loc = S.locations.find(l=>l.id===item.location_id);
-    const wh = loc?S.warehouses.find(w=>w.id===loc.warehouse_id):null;
-    html+=`<div class="card overflow-hidden">
-      <div class="p-3.5 flex gap-3" onclick="openItemDetail(${item.id})">
-        <div class="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 text-2xl" style="background:${catColor(item.category_id)}20">${getCatEmoji(item.category_id)}</div>
-        <div class="flex-1 min-w-0">
-          <div class="flex items-start justify-between gap-2">
-            <div class="font-semibold text-slate-900 leading-tight">${esc(item.name)}</div>
-            <span class="badge flex-shrink-0" style="background:${condColor(item.condition)}20;color:${condColor(item.condition)}">${item.condition}</span>
-          </div>
-          <div class="text-xs text-slate-500 mt-0.5">${catName(item.category_id)}</div>
-          <div class="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5">
-            <span class="text-sm font-medium text-slate-700">${item.quantity}×</span>
-            ${wh?`<span class="text-xs text-slate-400">📍 ${esc(wh.name)}</span>`:''}
-            ${item.is_rentable&&item.daily_rate?`<span class="text-xs text-blue-600">💶 ${fmt(item.daily_rate)}/Tag</span>`:''}
-            ${!item.is_rentable?`<span class="text-xs text-slate-400">nicht verleihbar</span>`:''}
-          </div>
+  if(active.length){
+    h+=`<div class="sec-hdr">🔴 Aktuell ausgeliehen</div><div style="padding:0 16px" class="fadeUp"><div class="igroup shadow">`;
+    active.forEach((r,i)=>{
+      const itm=item(r.iid);
+      h+=`<div class="list-row" style="${i<active.length-1?'':'border:none'}" onclick="go('rentals')">
+        <div style="width:10px;height:40px;border-radius:5px;background:${statusCol(r.status)};flex-shrink:0"></div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e(itm?itm.name:'?')}</div>
+          <div style="font-size:13px;color:var(--t2);margin-top:1px">${e(r.name)} · ${r.qty}×</div>
         </div>
-        <span class="text-slate-300 self-center">›</span>
-      </div>
-      <div class="flex border-t border-slate-100">
-        <button onclick="openItemForm(${item.id})" class="flex-1 py-2.5 text-sm text-slate-600 flex items-center justify-center gap-1.5">✏️ Bearbeiten</button>
-        <div class="w-px bg-slate-100"></div>
-        <button onclick="deleteItem(${item.id})" class="flex-1 py-2.5 text-sm text-red-400 flex items-center justify-center gap-1.5">🗑 Löschen</button>
-      </div>
-    </div>`;
-  });
-  html+=`</div></div>`;
-  return html;
+        <div style="text-align:right;flex-shrink:0">
+          <span class="badge" style="background:${statusBg(r.status)};color:${statusCol(r.status)}">${r.status}</span>
+          <div style="font-size:12px;color:var(--t3);margin-top:3px">bis ${fdate(r.e)}</div>
+        </div>
+      </div>`;
+    });
+    h+=`</div></div>`;
+  }
+  if(res.length){
+    h+=`<div class="sec-hdr">🟡 Bevorstehende Reservierungen</div><div style="padding:0 16px" class="fadeUp"><div class="igroup shadow">`;
+    res.forEach((r,i)=>{
+      const itm=item(r.iid);
+      h+=`<div class="list-row" style="${i<res.length-1?'':'border:none'}" onclick="go('rentals')">
+        <div style="width:10px;height:40px;border-radius:5px;background:${statusCol(r.status)};flex-shrink:0"></div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e(itm?itm.name:'?')}</div>
+          <div style="font-size:13px;color:var(--t2);margin-top:1px">${e(r.name)} · ${r.qty}×</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <span class="badge" style="background:${statusBg(r.status)};color:${statusCol(r.status)}">${r.status}</span>
+          <div style="font-size:12px;color:var(--t3);margin-top:3px">${fdate(r.s)}</div>
+        </div>
+      </div>`;
+    });
+    h+=`</div></div>`;
+  }
+  if(!active.length&&!res.length){
+    h+=`<div class="empty-state fadeUp"><div class="empty-icon">✅</div><div class="empty-text">Alles ruhig</div><div class="empty-sub">Keine aktiven oder bevorstehenden Verleihe</div></div>`;
+  }
+  h+=`<div style="height:8px"></div>`;
+  return h;
 }
 
-function getCatEmoji(id){
-  return ['⛺','🪑','⚡','🍳','📦'][S.categories.findIndex(c=>c.id===id)] || '📦';
+// ── ITEMS PAGE ───────────────────────────────────────────────────────────────
+function renderItems(){
+  const filtered=D.items.filter(i=>{
+    const ms=(i.name+(i.desc||'')).toLowerCase().includes(itemSearch.toLowerCase());
+    return ms&&(!itemCat||i.cid===itemCat);
+  });
+  let h=`<div style="background:linear-gradient(135deg,#1E3A8A,#2563EB,#3B82F6);padding:max(16px,env(safe-area-inset-top,16px)) 16px 20px">
+    <div style="font-size:22px;font-weight:800;color:#fff;margin-bottom:12px">Inventar</div>
+    <div class="search-wrap">
+      <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input class="inp search-inp" id="item-search" placeholder="Suchen..." value="${e(itemSearch)}" oninput="itemSearch=this.value;render('items')" style="background:rgba(255,255,255,.95)">
+      ${itemSearch?`<button class="search-clear" onclick="itemSearch='';render('items')">×</button>`:''}
+    </div>
+  </div>
+  <div style="padding:12px 16px;overflow-x:auto;display:flex;gap:8px;-webkit-overflow-scrolling:touch">
+    <button class="chip" onclick="itemCat=0;render('items')" style="background:${!itemCat?'var(--p)':'#fff'};color:${!itemCat?'#fff':'var(--t2)'};border-color:${!itemCat?'var(--p)':'var(--sep)'}">Alle (${D.items.length})</button>
+    ${D.categories.map(c=>`<button class="chip" onclick="itemCat=${c.id};render('items')" style="background:${itemCat===c.id?c.color:'#fff'};color:${itemCat===c.id?'#fff':'var(--t2)'};border-color:${itemCat===c.id?c.color:'var(--sep)'}">${e(c.emoji)} ${e(c.name)}</button>`).join('')}
+  </div>`;
+
+  if(!filtered.length){
+    h+=`<div class="empty-state fadeUp"><div class="empty-icon">📦</div><div class="empty-text">Keine Gegenstände</div><div class="empty-sub">Tippe auf + um einen hinzuzufügen</div></div>`;
+  } else {
+    h+=`<div style="padding:0 16px;display:flex;flex-direction:column;gap:10px" class="fadeUp">`;
+    filtered.forEach(itm=>{
+      const c=cat(itm.cid)||{color:'#94A3B8',emoji:'📦'};
+      const l=loc(itm.lid);const w=l?wh(l.wid):null;
+      h+=`<div class="c shadow" style="border-left:4px solid ${c.color}">
+        <div class="item-row" onclick="openItemDetail(${itm.id})" style="cursor:pointer">
+          <div class="item-icon" style="background:${c.color}18;font-size:24px">${c.emoji}</div>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+              <div style="font-weight:700;color:var(--t1);font-size:16px;line-height:1.2">${e(itm.name)}</div>
+              <span class="badge" style="background:${condBg(itm.cond)};color:${condCol(itm.cond)};flex-shrink:0">${itm.cond}</span>
+            </div>
+            <div style="font-size:13px;color:var(--t2);margin-top:2px">${e(c.name)}</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;align-items:center">
+              <span style="font-size:13px;font-weight:700;color:var(--t1)">${itm.qty}×</span>
+              ${w?`<span style="font-size:12px;color:var(--t3)">📍 ${e(w.name)}</span>`:''}
+              ${itm.rent&&itm.day?`<span style="font-size:12px;color:var(--p);font-weight:600">💶 ${fmt(itm.day)}/Tag</span>`:''}
+              ${!itm.rent?`<span style="font-size:12px;color:var(--t3)">nicht verleihbar</span>`:''}
+            </div>
+          </div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+        <div style="display:flex;border-top:1px solid var(--sep)">
+          <button onclick="openItemForm(${itm.id})" style="flex:1;padding:12px;background:none;border:none;font-size:14px;color:var(--t2);font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Bearbeiten
+          </button>
+          <div style="width:1px;background:var(--sep)"></div>
+          <button onclick="delItem(${itm.id})" style="flex:1;padding:12px;background:none;border:none;font-size:14px;color:var(--err);font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+            Löschen
+          </button>
+        </div>
+      </div>`;
+    });
+    h+=`</div><div style="height:8px"></div>`;
+  }
+  return h;
 }
 
 function openItemDetail(id){
-  const item = S.items.find(i=>i.id===id); if(!item) return;
-  const rentals = S.rentals.filter(r=>r.item_id===id).slice(0,5);
-  let html = `<div class="space-y-4">
-    <div class="flex items-center gap-3">
-      <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl" style="background:${catColor(item.category_id)}20">${getCatEmoji(item.category_id)}</div>
-      <div><div class="font-bold text-lg text-slate-900">${esc(item.name)}</div><div class="text-sm text-slate-500">${catName(item.category_id)}</div></div>
-    </div>
-    ${item.description?`<div class="text-sm text-slate-600">${esc(item.description)}</div>`:''}
-    <div class="card p-4 grid grid-cols-2 gap-3">
-      <div><div class="text-xs text-slate-400">Menge</div><div class="font-semibold">${item.quantity}</div></div>
-      <div><div class="text-xs text-slate-400">Zustand</div><div class="font-semibold" style="color:${condColor(item.condition)}">${item.condition}</div></div>
-      ${item.purchase_price?`<div><div class="text-xs text-slate-400">Einkaufspreis</div><div class="font-semibold">${fmt(item.purchase_price)}</div></div>`:''}
-      <div><div class="text-xs text-slate-400">Verleihbar</div><div class="font-semibold" style="color:${item.is_rentable?'#10b981':'#94a3b8'}">${item.is_rentable?'Ja':'Nein'}</div></div>
-    </div>
-    ${item.is_rentable&&(item.daily_rate||item.weekend_rate)?`
-    <div class="card p-4 grid grid-cols-2 gap-3">
-      ${item.daily_rate?`<div class="rounded-xl p-3" style="background:#eff6ff"><div class="text-xs text-blue-600">Tagespreis</div><div class="font-bold text-blue-700 text-lg">${fmt(item.daily_rate)}</div></div>`:''}
-      ${item.weekend_rate?`<div class="rounded-xl p-3" style="background:#f5f3ff"><div class="text-xs" style="color:#7c3aed">Wochenende</div><div class="font-bold text-lg" style="color:#6d28d9">${fmt(item.weekend_rate)}</div></div>`:''}
-    </div>`:''}
-    <div class="card p-4"><div class="text-sm font-medium text-slate-700 mb-1">📍 Lagerort</div><div class="text-slate-900">${locName(item.location_id)}</div></div>
-    ${item.notes?`<div class="card p-4"><div class="text-sm font-medium text-slate-700 mb-1">📝 Notizen</div><div class="text-sm text-slate-600">${esc(item.notes)}</div></div>`:''}
-    ${rentals.length?`<div class="card p-4"><div class="text-sm font-medium text-slate-700 mb-3">📅 Letzte Verleihe</div><div class="space-y-2">
-      ${rentals.map(r=>`<div class="flex items-center justify-between text-sm"><div><div class="font-medium">${esc(r.borrower_name)}</div><div class="text-xs text-slate-400">${fmtDate(r.start_date)} – ${fmtDate(r.end_date)} · ${r.quantity}×</div></div><span class="badge" style="background:${statusBg(r.status)};color:${statusColor(r.status)}">${r.status}</span></div>`).join('')}
-    </div></div>`:''}
-    <div class="flex gap-3 pt-2">
-      <button onclick="closeModal();openItemForm(${item.id})" class="btn flex-1" style="background:#f1f5f9;color:#475569">✏️ Bearbeiten</button>
-      <button onclick="closeModal();openRentalForm(null,${item.id})" class="btn flex-1" style="background:#2563eb;color:white">+ Verleihen</button>
-    </div>
+  const itm=item(id);if(!itm)return;
+  const c=cat(itm.cid)||{color:'#94A3B8',emoji:'📦',name:'–'};
+  const rentals=D.rentals.filter(r=>r.iid===id).slice(0,4);
+  let h=`<div style="text-align:center;padding:8px 0 20px">
+    <div style="width:72px;height:72px;border-radius:22px;background:${c.color}18;display:flex;align-items:center;justify-content:center;font-size:34px;margin:0 auto 10px">${c.emoji}</div>
+    <div style="font-size:20px;font-weight:800;color:var(--t1)">${e(itm.name)}</div>
+    <div style="font-size:14px;color:var(--t2);margin-top:2px">${e(c.name)}</div>
+    ${itm.desc?`<div style="font-size:14px;color:var(--t3);margin-top:8px">${e(itm.desc)}</div>`:''}
+  </div>
+  <div class="igroup" style="margin-bottom:14px">
+    <div class="list-row"><div style="flex:1;font-size:14px;color:var(--t2)">Menge</div><div style="font-weight:700">${itm.qty}</div></div>
+    <div class="list-row"><div style="flex:1;font-size:14px;color:var(--t2)">Zustand</div><span class="badge" style="background:${condBg(itm.cond)};color:${condCol(itm.cond)}">${itm.cond}</span></div>
+    ${itm.price?`<div class="list-row"><div style="flex:1;font-size:14px;color:var(--t2)">Einkaufspreis</div><div style="font-weight:700">${fmt(itm.price)}</div></div>`:''}
+    <div class="list-row" style="border:none"><div style="flex:1;font-size:14px;color:var(--t2)">Verleihbar</div><div style="font-weight:700;color:${itm.rent?'var(--ok)':'var(--t3)'}">${itm.rent?'Ja':'Nein'}</div></div>
+  </div>
+  ${itm.rent&&(itm.day||itm.wknd)?`<div class="igroup" style="margin-bottom:14px">
+    <div style="padding:12px 16px 4px;font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px">Preise</div>
+    ${itm.day?`<div class="list-row"><div style="flex:1;font-size:14px;color:var(--t2)">Tagespreis</div><div style="font-weight:700;color:var(--p)">${fmt(itm.day)}</div></div>`:''}
+    ${itm.wknd?`<div class="list-row" style="border:none"><div style="flex:1;font-size:14px;color:var(--t2)">Wochenende</div><div style="font-weight:700;color:#7C3AED">${fmt(itm.wknd)}</div></div>`:''}
+  </div>`:''}
+  <div class="igroup" style="margin-bottom:14px">
+    <div class="list-row" style="border:none"><div style="flex:1;font-size:14px;color:var(--t2)">Lagerort</div><div style="font-weight:600;font-size:14px;text-align:right;max-width:60%">${e(locFull(itm.lid))}</div></div>
+  </div>
+  ${itm.notes?`<div class="igroup" style="margin-bottom:14px"><div class="list-row" style="border:none;flex-direction:column;align-items:flex-start;gap:4px"><div style="font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px">Notizen</div><div style="font-size:14px;color:var(--t2)">${e(itm.notes)}</div></div></div>`:''}
+  ${rentals.length?`<div class="igroup" style="margin-bottom:14px">
+    <div style="padding:12px 16px 4px;font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px">Letzte Verleihe</div>
+    ${rentals.map((r,i)=>`<div class="list-row" style="${i===rentals.length-1?'border:none':''}">
+      <div style="flex:1;min-width:0"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e(r.name)}</div><div style="font-size:12px;color:var(--t3)">${fdate(r.s)} – ${fdate(r.e)} · ${r.qty}×</div></div>
+      <span class="badge" style="background:${statusBg(r.status)};color:${statusCol(r.status)}">${r.status}</span>
+    </div>`).join('')}
+  </div>`:''}
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-bottom:8px">
+    <button class="btn btn-s" onclick="closeModal();openItemForm(${id})">✏️ Bearbeiten</button>
+    <button class="btn btn-p" onclick="closeModal();openRentalForm(null,${id})">+ Verleihen</button>
   </div>`;
-  openModal(`${esc(item.name)}`, html);
+  openModal(itm.name,h);
 }
 
 function openItemForm(id=null){
-  const item = id ? S.items.find(i=>i.id===id) : null;
-  const locOpts = S.locations.map(l=>{
-    const w=S.warehouses.find(x=>x.id===l.warehouse_id);
-    return `<option value="${l.id}" ${item&&item.location_id===l.id?'selected':''}>${w?w.name+' › ':''} ${esc(l.name)}</option>`;
-  }).join('');
-  const conditions = ['neuwertig','sehr gut','gut','befriedigend','reparaturbedürftig'];
-  let html = `<form onsubmit="saveItem(event,${id||'null'})">
-    <div class="space-y-3">
-      <div><label class="text-sm font-medium text-slate-700 block mb-1">Name *</label><input class="input" name="name" required placeholder="z.B. Festzelt 6×12m" value="${esc(item?.name||'')}"></div>
-      <div><label class="text-sm font-medium text-slate-700 block mb-1">Beschreibung</label><textarea class="input" name="description" rows="2" placeholder="Details...">${esc(item?.description||'')}</textarea></div>
-      <div class="grid grid-cols-2 gap-3">
-        <div><label class="text-sm font-medium text-slate-700 block mb-1">Kategorie</label>
-          <select class="input" name="category_id"><option value="">– keine –</option>${S.categories.map(c=>`<option value="${c.id}" ${item&&item.category_id===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select></div>
-        <div><label class="text-sm font-medium text-slate-700 block mb-1">Menge</label><input class="input" type="number" min="1" name="quantity" value="${item?.quantity||1}"></div>
+  const itm=id?item(id):null;
+  const conds=['neuwertig','sehr gut','gut','befriedigend','reparaturbedürftig'];
+  let h=`<form onsubmit="saveItem(event,${id||'null'})"><div style="display:flex;flex-direction:column;gap:14px">
+    <div class="field"><label class="lbl">Name *</label><input class="inp" name="name" required placeholder="z.B. Festzelt 6×12m" value="${e(itm?.name||'')}"></div>
+    <div class="field"><label class="lbl">Beschreibung</label><textarea class="inp" name="desc" rows="2" placeholder="Details zum Gegenstand...">${e(itm?.desc||'')}</textarea></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="field"><label class="lbl">Kategorie</label><select class="inp" name="cid"><option value="">– keine –</option>${D.categories.map(c=>`<option value="${c.id}"${itm&&itm.cid===c.id?' selected':''}>${e(c.name)}</option>`).join('')}</select></div>
+      <div class="field"><label class="lbl">Menge</label><input class="inp" type="number" min="1" name="qty" value="${itm?.qty||1}"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="field"><label class="lbl">Zustand</label><select class="inp" name="cond">${conds.map(c=>`<option${itm&&itm.cond===c?' selected':''}>${c}</option>`).join('')}</select></div>
+      <div class="field"><label class="lbl">Einkaufspreis €</label><input class="inp" type="number" step="0.01" name="price" value="${itm?.price||''}"></div>
+    </div>
+    <div class="field"><label class="lbl">Lagerplatz</label><select class="inp" name="lid"><option value="">– kein Lagerplatz –</option>${D.warehouses.map(w=>`<optgroup label="${e(w.name)}">${D.locations.filter(l=>l.wid===w.id).map(l=>`<option value="${l.id}"${itm&&itm.lid===l.id?' selected':''}>${e(l.name)}</option>`).join('')}</optgroup>`).join('')}</select></div>
+    <div class="igroup" style="padding:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div><div style="font-weight:600;font-size:15px">Verleihbar</div><div style="font-size:13px;color:var(--t2)">Kann an Dritte ausgeliehen werden</div></div>
+        <div class="tgl${itm?.rent!==false?' on':''}" id="rentgl" onclick="this.classList.toggle('on');document.getElementById('rentflds').style.display=this.classList.contains('on')?'block':'none'"></div>
       </div>
-      <div class="grid grid-cols-2 gap-3">
-        <div><label class="text-sm font-medium text-slate-700 block mb-1">Zustand</label>
-          <select class="input" name="condition">${conditions.map(c=>`<option ${item&&item.condition===c?'selected':''}>${c}</option>`).join('')}</select></div>
-        <div><label class="text-sm font-medium text-slate-700 block mb-1">Einkaufspreis (€)</label><input class="input" type="number" step="0.01" name="purchase_price" value="${item?.purchase_price||''}"></div>
-      </div>
-      <div><label class="text-sm font-medium text-slate-700 block mb-1">Lagerplatz</label>
-        <select class="input" name="location_id"><option value="">– kein –</option>${locOpts}</select></div>
-      <div class="card p-3 space-y-2">
-        <div class="flex items-center justify-between">
-          <span class="text-sm font-medium text-slate-700">Verleihbar</span>
-          <div class="toggle ${item?.is_rentable!==false?'on':''}" id="rentable-toggle" onclick="this.classList.toggle('on');document.getElementById('rental-fields').style.display=this.classList.contains('on')?'block':'none'"></div>
+      <div id="rentflds" style="display:${itm?.rent!==false?'block':'none'};margin-top:14px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="field"><label class="lbl">Tagespreis €</label><input class="inp" type="number" step="0.01" id="day-inp" name="day" value="${itm?.day||''}"></div>
+          <div class="field"><label class="lbl">Wochenende €</label><input class="inp" type="number" step="0.01" name="wknd" value="${itm?.wknd||''}"></div>
         </div>
-        <div id="rental-fields" style="display:${item?.is_rentable!==false?'block':'none'}">
-          <div class="grid grid-cols-2 gap-3 mt-2">
-            <div><label class="text-xs text-slate-500 block mb-1">Tagespreis (€)</label><input class="input" type="number" step="0.01" name="daily_rate" value="${item?.daily_rate||''}"></div>
-            <div><label class="text-xs text-slate-500 block mb-1">Wochenende (€)</label><input class="input" type="number" step="0.01" name="weekend_rate" value="${item?.weekend_rate||''}"></div>
-          </div>
-        </div>
-      </div>
-      <div><label class="text-sm font-medium text-slate-700 block mb-1">Notizen</label><textarea class="input" name="notes" rows="2">${esc(item?.notes||'')}</textarea></div>
-      <div class="flex gap-3 pt-1">
-        <button type="button" onclick="closeModal()" class="btn flex-1" style="background:#f1f5f9;color:#475569">Abbrechen</button>
-        <button type="submit" class="btn flex-1" style="background:#2563eb;color:white">Speichern</button>
       </div>
     </div>
-  </form>`;
-  openModal(item?'Bearbeiten':'Neuer Gegenstand', html);
+    <div class="field"><label class="lbl">Notizen</label><textarea class="inp" name="notes" rows="2" placeholder="Interne Notizen...">${e(itm?.notes||'')}</textarea></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-bottom:8px">
+      <button type="button" class="btn btn-s" onclick="closeModal()">Abbrechen</button>
+      <button type="submit" class="btn btn-p">Speichern</button>
+    </div>
+  </div></form>`;
+  openModal(itm?'Gegenstand bearbeiten':'Neuer Gegenstand',h);
 }
 
-function saveItem(e, id){
-  e.preventDefault();
-  const f = e.target;
-  const isRentable = document.getElementById('rentable-toggle').classList.contains('on');
-  const data = {
-    name: f.name.value.trim(), description: f.description.value.trim(),
-    category_id: parseInt(f.category_id.value)||null, quantity: parseInt(f.quantity.value)||1,
-    condition: f.condition.value, purchase_price: parseFloat(f.purchase_price.value)||null,
-    is_rentable: isRentable, daily_rate: isRentable?parseFloat(f.daily_rate.value)||null:null,
-    weekend_rate: isRentable?parseFloat(f.weekend_rate.value)||null:null,
-    location_id: parseInt(f.location_id.value)||null, notes: f.notes.value.trim(),
-  };
-  if(!data.name){ toast('Name ist Pflichtfeld','error'); return; }
-  if(id){ Object.assign(S.items.find(i=>i.id===id), data); toast('Gegenstand gespeichert'); }
-  else { S.items.push({id:uid(),...data}); toast('Gegenstand angelegt'); }
-  save(); closeModal(); render();
+function saveItem(e_,id){
+  e_.preventDefault();const f=e_.target;
+  const rentable=document.getElementById('rentgl').classList.contains('on');
+  const data={name:f.name.value.trim(),desc:f.desc.value.trim(),cid:parseInt(f.cid.value)||null,qty:parseInt(f.qty.value)||1,cond:f.cond.value,price:parseFloat(f.price.value)||null,rent:rentable,day:rentable?(parseFloat(f.day.value)||null):null,wknd:rentable?(parseFloat(f.wknd.value)||null):null,lid:parseInt(f.lid.value)||null,notes:f.notes.value.trim()};
+  if(!data.name){toast('Name ist Pflichtfeld','err');return;}
+  if(id){Object.assign(item(id),data);toast('Gespeichert');}
+  else{D.items.push({id:nid(),...data});toast('Angelegt');}
+  save();closeModal();render('items');
 }
 
-function deleteItem(id){
-  const item = S.items.find(i=>i.id===id); if(!item) return;
-  const active = S.rentals.filter(r=>r.item_id===id&&!['zurückgegeben','storniert'].includes(r.status));
-  if(active.length){ toast('Gegenstand hat aktive Verleihe – zuerst abschließen!','error'); return; }
-  confirm_(`"${item.name}" wirklich löschen?`, ()=>{
-    S.items = S.items.filter(i=>i.id!==id);
-    S.rentals = S.rentals.filter(r=>r.item_id!==id);
-    save(); toast('Gelöscht'); render();
-  });
+function delItem(id){
+  const itm=item(id);if(!itm)return;
+  if(D.rentals.some(r=>r.iid===id&&!['zurückgegeben','storniert'].includes(r.status))){toast('Hat aktive Verleihe – zuerst abschließen','err');return;}
+  confirm_(`"${itm.name}" löschen?`,()=>{D.items=D.items.filter(i=>i.id!==id);D.rentals=D.rentals.filter(r=>r.iid!==id);save();toast('Gelöscht');render('items');});
 }
 
-// ─── RENTALS PAGE ────────────────────────────────────────────────────────────
+// ── RENTALS PAGE ─────────────────────────────────────────────────────────────
 function renderRentals(){
-  const statuses = ['alle','reserviert','ausgeliehen','zurückgegeben','storniert'];
-  const rentals = rentalFilter==='alle' ? S.rentals : S.rentals.filter(r=>r.status===rentalFilter);
-  let html = `<div>
-    <div class="sticky bg-slate-50 z-10 px-4 py-3 border-b border-slate-100" style="top:0">
-      <div class="flex gap-2 overflow-x-auto pb-1">
-        ${statuses.map(s=>`<button onclick="rentalFilter='${s}';render()" class="chip flex-shrink-0" style="background:${rentalFilter===s?'#2563eb':'white'};color:${rentalFilter===s?'white':'#475569'};border-color:${rentalFilter===s?'#2563eb':'#e2e8f0'}">${s==='alle'?`Alle (${S.rentals.length})`:s}</button>`).join('')}
-      </div>
+  const segs=['alle','reserviert','ausgeliehen','zurückgegeben','storniert'];
+  const list=rentalSeg==='alle'?D.rentals:D.rentals.filter(r=>r.status===rentalSeg);
+  const cnt=s=>D.rentals.filter(r=>r.status===s).length;
+  let h=`<div style="background:linear-gradient(135deg,#1E3A8A,#2563EB,#3B82F6);padding:max(16px,env(safe-area-inset-top,16px)) 16px 20px">
+    <div style="font-size:22px;font-weight:800;color:#fff;margin-bottom:12px">Verleih</div>
+    <div class="seg">
+      ${segs.map(s=>`<div class="seg-item${rentalSeg===s?' active':''}" onclick="rentalSeg='${s}';render('rentals')">${s==='alle'?`Alle ${D.rentals.length}`:s+(cnt(s)?` ${cnt(s)}`:'')} </div>`).join('')}
     </div>
-    <div class="p-4 space-y-3">
-      <button onclick="openRentalForm()" class="btn w-full" style="background:#2563eb;color:white">+ Neuer Verleihvorgang</button>`;
+  </div>
+  <div style="padding:16px;display:flex;flex-direction:column;gap:10px" class="fadeUp">`;
 
-  if(!rentals.length) html+=`<div class="card p-10 text-center"><div style="font-size:3rem">📅</div><div class="text-slate-400 mt-2">Keine Einträge</div></div>`;
-
-  rentals.forEach(r=>{
-    const item = S.items.find(i=>i.id===r.item_id);
-    html+=`<div class="card overflow-hidden">
-      <div class="p-4" onclick="toggleRentalDetail(${r.id})">
-        <div class="flex items-start justify-between gap-3">
-          <div class="flex-1 min-w-0">
-            <div class="font-semibold text-slate-900 truncate">${esc(item?item.name:'Unbekannt')}</div>
-            <div class="text-sm text-slate-600 flex items-center gap-1 mt-0.5">👤 ${esc(r.borrower_name)} · ${r.quantity}×</div>
-            <div class="text-xs text-slate-400 mt-1">📅 ${fmtDate(r.start_date)} – ${fmtDate(r.end_date)}</div>
-          </div>
-          <div class="flex-shrink-0 text-right">
-            <span class="badge" style="background:${statusBg(r.status)};color:${statusColor(r.status)}">${r.status}</span>
-            ${r.total_price?`<div class="text-sm font-semibold text-slate-700 mt-1">${fmt(r.total_price)}</div>`:''}
-            <div class="text-slate-300 text-sm mt-1" id="rental-chevron-${r.id}">▼</div>
+  if(!list.length){
+    h+=`<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-text">Keine Verleihe</div><div class="empty-sub">Tippe auf + um einen neuen anzulegen</div></div>`;
+  } else {
+    list.forEach(r=>{
+      const itm=item(r.iid);
+      h+=`<div class="c shadow" style="border-left:4px solid ${statusCol(r.status)}">
+        <div style="padding:14px;cursor:pointer" onclick="toggleRd(${r.id})">
+          <div style="display:flex;align-items:flex-start;gap:10px">
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:700;font-size:16px;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e(itm?itm.name:'Unbekannt')}</div>
+              <div style="font-size:13px;color:var(--t2);margin-top:3px;display:flex;align-items:center;gap:6px">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                ${e(r.name)} · ${r.qty}×
+              </div>
+              <div style="font-size:12px;color:var(--t3);margin-top:3px;display:flex;align-items:center;gap:6px">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
+                ${fdate(r.s)} – ${fdate(r.e)}
+              </div>
+            </div>
+            <div style="text-align:right;flex-shrink:0">
+              <span class="badge" style="background:${statusBg(r.status)};color:${statusCol(r.status)}">${r.status}</span>
+              ${r.total?`<div style="font-weight:800;font-size:16px;color:var(--t1);margin-top:4px">${fmt(r.total)}</div>`:''}
+            </div>
           </div>
         </div>
-      </div>
-      <div id="rental-detail-${r.id}" class="hidden border-t border-slate-100 p-4 space-y-2">
-        ${r.borrower_phone?`<a href="tel:${esc(r.borrower_phone)}" class="flex items-center gap-2 text-sm text-blue-600">📞 ${esc(r.borrower_phone)}</a>`:''}
-        ${r.borrower_email?`<a href="mailto:${esc(r.borrower_email)}" class="flex items-center gap-2 text-sm text-blue-600">✉️ ${esc(r.borrower_email)}</a>`:''}
-        ${r.borrower_address?`<div class="flex items-start gap-2 text-sm text-slate-600">📍 ${esc(r.borrower_address)}</div>`:''}
-        ${r.notes?`<div class="text-sm text-slate-500 italic">"${esc(r.notes)}"</div>`:''}
-        <div class="grid grid-cols-2 gap-2 pt-1">
-          ${r.status==='reserviert'?`<button onclick="updateRentalStatus(${r.id},'ausgeliehen')" class="btn text-sm" style="background:#dbeafe;color:#1d4ed8">→ Ausgeliehen</button>`:''}
-          ${r.status==='ausgeliehen'?`<button onclick="updateRentalStatus(${r.id},'zurückgegeben')" class="btn text-sm" style="background:#dcfce7;color:#15803d">✓ Zurück</button>`:''}
-          <button onclick="openRentalForm(${r.id})" class="btn text-sm" style="background:#f1f5f9;color:#475569">✏️ Bearbeiten</button>
-          <button onclick="deleteRental(${r.id})" class="btn text-sm" style="background:#fee2e2;color:#dc2626">🗑 Löschen</button>
+        <div id="rd-${r.id}" style="display:none;border-top:1px solid var(--sep)">
+          <div style="padding:12px 14px;display:flex;flex-direction:column;gap:8px">
+            ${r.phone?`<a href="tel:${e(r.phone)}" style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--p);text-decoration:none">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.67A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+              ${e(r.phone)}</a>`:''}
+            ${r.email?`<a href="mailto:${e(r.email)}" style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--p);text-decoration:none">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              ${e(r.email)}</a>`:''}
+            ${r.addr?`<div style="display:flex;align-items:flex-start;gap:8px;font-size:14px;color:var(--t2)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              ${e(r.addr)}</div>`:''}
+            ${r.notes?`<div style="font-size:13px;color:var(--t3);font-style:italic;padding:8px 12px;background:#F8FAFC;border-radius:10px">"${e(r.notes)}"</div>`:''}
+          </div>
+          <div style="display:flex;border-top:1px solid var(--sep)">
+            ${r.status==='reserviert'?`<button onclick="setStatus(${r.id},'ausgeliehen')" style="flex:1;padding:13px 8px;background:none;border:none;font-size:13px;font-weight:700;color:var(--p);cursor:pointer">✓ Ausgeliehen</button><div style="width:1px;background:var(--sep)"></div>`:''}
+            ${r.status==='ausgeliehen'?`<button onclick="setStatus(${r.id},'zurückgegeben')" style="flex:1;padding:13px 8px;background:none;border:none;font-size:13px;font-weight:700;color:var(--ok);cursor:pointer">✓ Zurückgegeben</button><div style="width:1px;background:var(--sep)"></div>`:''}
+            <button onclick="openRentalForm(${r.id})" style="flex:1;padding:13px 8px;background:none;border:none;font-size:13px;font-weight:600;color:var(--t2);cursor:pointer">Bearbeiten</button>
+            <div style="width:1px;background:var(--sep)"></div>
+            <button onclick="delRental(${r.id})" style="flex:1;padding:13px 8px;background:none;border:none;font-size:13px;font-weight:600;color:var(--err);cursor:pointer">Löschen</button>
+          </div>
         </div>
-      </div>
-    </div>`;
-  });
-  html+=`</div></div>`;
-  return html;
-}
-
-function toggleRentalDetail(id){
-  const el = document.getElementById(`rental-detail-${id}`);
-  const ch = document.getElementById(`rental-chevron-${id}`);
-  if(el){ el.classList.toggle('hidden'); if(ch) ch.textContent = el.classList.contains('hidden')?'▼':'▲'; }
-}
-
-function updateRentalStatus(id, status){
-  const r = S.rentals.find(x=>x.id===id); if(!r) return;
-  r.status = status; save(); toast(`Status: ${status}`); render();
-}
-
-function openRentalForm(id=null, prefillItemId=null){
-  const r = id ? S.rentals.find(x=>x.id===id) : null;
-  const rentableItems = S.items.filter(i=>i.is_rentable);
-  const today = new Date().toISOString().split('T')[0];
-  let html = `<form onsubmit="saveRental(event,${id||'null'})">
-    <div class="space-y-3" id="rental-form-fields">
-      <div><label class="text-sm font-medium text-slate-700 block mb-1">Gegenstand *</label>
-        <select class="input" name="item_id" id="rf-item" onchange="calcRentalPrice()" required>
-          <option value="">– Gegenstand wählen –</option>
-          ${rentableItems.map(i=>`<option value="${i.id}" ${(r&&r.item_id===i.id)||(prefillItemId===i.id)?'selected':''}>${esc(i.name)} (Bestand: ${i.quantity})</option>`).join('')}
-        </select></div>
-      <div class="grid grid-cols-2 gap-3">
-        <div><label class="text-sm font-medium text-slate-700 block mb-1">Von *</label><input class="input" type="date" name="start_date" id="rf-start" required value="${r?.start_date||today}" onchange="calcRentalPrice();checkRentalAvail()"></div>
-        <div><label class="text-sm font-medium text-slate-700 block mb-1">Bis *</label><input class="input" type="date" name="end_date" id="rf-end" required value="${r?.end_date||today}" onchange="calcRentalPrice();checkRentalAvail()"></div>
-      </div>
-      <div class="grid grid-cols-2 gap-3">
-        <div><label class="text-sm font-medium text-slate-700 block mb-1">Menge</label><input class="input" type="number" min="1" name="quantity" id="rf-qty" value="${r?.quantity||1}" onchange="calcRentalPrice();checkRentalAvail()"></div>
-        <div><label class="text-sm font-medium text-slate-700 block mb-1">Preismodell</label>
-          <select class="input" name="price_type" id="rf-price-type" onchange="calcRentalPrice()">
-            <option value="daily" ${(!r||r.price_type==='daily')?'selected':''}>Tagespreis</option>
-            <option value="weekend" ${r?.price_type==='weekend'?'selected':''}>Wochenende</option>
-            <option value="custom" ${r?.price_type==='custom'?'selected':''}>Individuell</option>
-            <option value="free" ${r?.price_type==='free'?'selected':''}>Kostenlos</option>
-          </select></div>
-      </div>
-      <div id="rf-avail" class="hidden rounded-xl p-3 text-sm"></div>
-      <div id="rf-price-display" class="hidden rounded-xl p-3 flex items-center justify-between" style="background:#eff6ff">
-        <span class="text-sm text-blue-700">Berechneter Preis</span>
-        <span id="rf-price-val" class="font-bold text-blue-700 text-lg"></span>
-      </div>
-      <div id="rf-custom-price" class="hidden">
-        <label class="text-sm font-medium text-slate-700 block mb-1">Gesamtpreis (€)</label>
-        <input class="input" type="number" step="0.01" name="total_price" value="${r?.total_price||''}">
-      </div>
-      ${r?`<div><label class="text-sm font-medium text-slate-700 block mb-1">Status</label>
-        <select class="input" name="status">
-          ${['reserviert','ausgeliehen','zurückgegeben','storniert'].map(s=>`<option ${r.status===s?'selected':''}>${s}</option>`).join('')}
-        </select></div>`:''}
-      <div class="border-t border-slate-100 pt-3"><div class="text-sm font-medium text-slate-700 mb-2">Kontakt Entleiher</div>
-        <div class="space-y-2">
-          <input class="input" name="borrower_name" required placeholder="Name *" value="${esc(r?.borrower_name||'')}">
-          <input class="input" type="tel" name="borrower_phone" placeholder="Telefon" value="${esc(r?.borrower_phone||'')}">
-          <input class="input" type="email" name="borrower_email" placeholder="E-Mail" value="${esc(r?.borrower_email||'')}">
-          <textarea class="input" name="borrower_address" rows="2" placeholder="Adresse">${esc(r?.borrower_address||'')}</textarea>
-        </div></div>
-      <textarea class="input" name="notes" rows="2" placeholder="Notizen...">${esc(r?.notes||'')}</textarea>
-      <div class="flex gap-3 pt-1">
-        <button type="button" onclick="closeModal()" class="btn flex-1" style="background:#f1f5f9;color:#475569">Abbrechen</button>
-        <button type="submit" class="btn flex-1" style="background:#2563eb;color:white">Speichern</button>
-      </div>
-    </div>
-  </form>`;
-  openModal(r?'Verleih bearbeiten':'Neuer Verleihvorgang', html);
-  setTimeout(()=>{ calcRentalPrice(); checkRentalAvail(); if(prefillItemId){ const sel=document.getElementById('rf-item'); if(sel) sel.value=prefillItemId; calcRentalPrice(); checkRentalAvail(); } },50);
-}
-
-let _rentalEditId = null;
-function saveRental(e, id){
-  e.preventDefault();
-  const f = e.target;
-  const itemId = parseInt(f.item_id.value); if(!itemId){toast('Gegenstand wählen','error');return;}
-  const start = f.start_date.value, end = f.end_date.value, qty = parseInt(f.quantity.value)||1;
-  if(end<start){toast('Enddatum vor Startdatum','error');return;}
-  const av = checkAvail(itemId,start,end,qty,id);
-  if(!av.ok){toast(`Nicht verfügbar! Nur ${av.avail} von ${av.total} verfügbar`,'error');return;}
-  const priceType = f.price_type.value;
-  let price = null;
-  if(priceType==='custom') price = parseFloat(f.total_price?.value)||null;
-  else if(priceType!=='free'){
-    const item = S.items.find(i=>i.id===itemId);
-    const days = daysBetween(start,end);
-    if(priceType==='weekend'&&item.weekend_rate) price = item.weekend_rate*qty;
-    else if(item.daily_rate) price = item.daily_rate*days*qty;
+      </div>`;
+    });
   }
-  const data = {
-    item_id:itemId, borrower_name:f.borrower_name.value.trim(),
-    borrower_phone:f.borrower_phone.value.trim(), borrower_email:f.borrower_email.value.trim(),
-    borrower_address:f.borrower_address.value.trim(), start_date:start, end_date:end,
-    quantity:qty, status:f.status?.value||'reserviert', price_type:priceType, total_price:price, notes:f.notes.value.trim()
-  };
-  if(!data.borrower_name){toast('Name ist Pflichtfeld','error');return;}
-  if(id){Object.assign(S.rentals.find(r=>r.id===id),data);toast('Verleih gespeichert');}
-  else{S.rentals.push({id:uid(),...data});toast('Verleih angelegt');}
-  save();closeModal();render();
+  h+=`</div><div style="height:8px"></div>`;
+  return h;
 }
 
-function calcRentalPrice(){
-  const item_sel=document.getElementById('rf-item'), start_in=document.getElementById('rf-start'), end_in=document.getElementById('rf-end'), qty_in=document.getElementById('rf-qty'), pt_sel=document.getElementById('rf-price-type');
-  const pd=document.getElementById('rf-price-display'), cp=document.getElementById('rf-custom-price');
-  if(!item_sel||!start_in||!end_in||!qty_in||!pt_sel) return;
-  const itemId=parseInt(item_sel.value), start=start_in.value, end=end_in.value, qty=parseInt(qty_in.value)||1, pt=pt_sel.value;
-  if(pt==='custom'){pd.classList.add('hidden');cp.classList.remove('hidden');return;}
-  cp.classList.add('hidden');
-  if(!itemId||!start||!end||end<start){pd.classList.add('hidden');return;}
-  const item=S.items.find(i=>i.id===itemId); if(!item) return;
-  const days=daysBetween(start,end);
+function toggleRd(id){
+  const el=document.getElementById(`rd-${id}`);
+  if(el) el.style.display=el.style.display==='none'?'block':'none';
+}
+function setStatus(id,status){
+  const r=D.rentals.find(x=>x.id===id);if(!r)return;
+  r.status=status;save();toast(`Status: ${status}`);render('rentals');
+}
+
+function openRentalForm(id=null,prefillIid=null){
+  const r=id?D.rentals.find(x=>x.id===id):null;
+  const today=new Date().toISOString().split('T')[0];
+  const rentItems=D.items.filter(i=>i.rent);
+  let h=`<form onsubmit="saveRental(event,${id||'null'})"><div style="display:flex;flex-direction:column;gap:14px">
+    ${!r?`<div class="field"><label class="lbl">Gegenstand *</label><select class="inp" name="iid" id="rf-iid" required onchange="rfCalc();rfAvail()"><option value="">– wählen –</option>${rentItems.map(i=>`<option value="${i.id}"${prefillIid===i.id?' selected':''}>${e(i.name)} (${i.qty}×)</option>`).join('')}</select></div>`:''}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="field"><label class="lbl">Von *</label><input class="inp" type="date" name="sd" id="rf-sd" required value="${r?.s||today}" onchange="rfCalc();rfAvail()"></div>
+      <div class="field"><label class="lbl">Bis *</label><input class="inp" type="date" name="ed" id="rf-ed" required value="${r?.e||today}" onchange="rfCalc();rfAvail()"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="field"><label class="lbl">Menge</label><input class="inp" type="number" min="1" name="qty" id="rf-qty" value="${r?.qty||1}" onchange="rfCalc();rfAvail()"></div>
+      <div class="field"><label class="lbl">Preismodell</label><select class="inp" name="pt" id="rf-pt" onchange="rfCalc()">
+        <option value="daily"${(!r||r.pt==='daily')?' selected':''}>Tagespreis</option>
+        <option value="weekend"${r?.pt==='weekend'?' selected':''}>Wochenende</option>
+        <option value="custom"${r?.pt==='custom'?' selected':''}>Individuell</option>
+        <option value="free"${r?.pt==='free'?' selected':''}>Kostenlos</option>
+      </select></div>
+    </div>
+    <div id="rf-avail" style="display:none;border-radius:12px;padding:12px 14px;font-size:14px;font-weight:600"></div>
+    <div id="rf-price-box" style="display:none;background:#EFF6FF;border-radius:12px;padding:12px 14px;display:none;align-items:center;justify-content:space-between">
+      <span style="font-size:14px;color:#1D4ED8">Berechneter Preis</span>
+      <span id="rf-price-val" style="font-size:20px;font-weight:800;color:#1D4ED8"></span>
+    </div>
+    <div id="rf-custom" style="display:none" class="field"><label class="lbl">Gesamtpreis (€)</label><input class="inp" type="number" step="0.01" name="total" value="${r?.total||''}"></div>
+    ${r?`<div class="field"><label class="lbl">Status</label><select class="inp" name="status">
+      ${['reserviert','ausgeliehen','zurückgegeben','storniert'].map(s=>`<option${r.status===s?' selected':''}>${s}</option>`).join('')}
+    </select></div>`:''}
+    <div style="background:#F8FAFC;border-radius:16px;padding:14px">
+      <div style="font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Kontakt Entleiher</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <input class="inp" name="bname" required placeholder="Name *" value="${e(r?.name||'')}">
+        <input class="inp" type="tel" name="bphone" placeholder="Telefon" value="${e(r?.phone||'')}">
+        <input class="inp" type="email" name="bemail" placeholder="E-Mail" value="${e(r?.email||'')}">
+        <textarea class="inp" name="baddr" rows="2" placeholder="Adresse">${e(r?.addr||'')}</textarea>
+      </div>
+    </div>
+    <div class="field"><label class="lbl">Notizen</label><textarea class="inp" name="notes" rows="2" placeholder="Interne Notizen...">${e(r?.notes||'')}</textarea></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-bottom:8px">
+      <button type="button" class="btn btn-s" onclick="closeModal()">Abbrechen</button>
+      <button type="submit" class="btn btn-p">Speichern</button>
+    </div>
+  </div></form>`;
+  openModal(r?'Verleih bearbeiten':'Neuer Verleihvorgang',h);
+  if(prefillIid) setTimeout(()=>{const s=document.getElementById('rf-iid');if(s){s.value=prefillIid;}rfCalc();rfAvail();},60);
+  else setTimeout(()=>{rfCalc();rfAvail();},60);
+}
+
+function rfCalc(){
+  const isel=document.getElementById('rf-iid'),sd=document.getElementById('rf-sd'),ed=document.getElementById('rf-ed'),qty_el=document.getElementById('rf-qty'),pt_el=document.getElementById('rf-pt');
+  const pb=document.getElementById('rf-price-box'),pv=document.getElementById('rf-price-val'),cp=document.getElementById('rf-custom');
+  if(!sd||!ed||!pt_el)return;
+  const pt=pt_el.value;
+  if(pt==='custom'){if(pb)pb.style.display='none';if(cp)cp.style.display='block';return;}
+  if(cp)cp.style.display='none';
+  const iid=isel?parseInt(isel.value):null;
+  const itm=iid?item(iid):null;
+  const s=sd.value,e_=ed.value,qty=parseInt(qty_el?.value)||1;
+  if(!s||!e_||e_<s){if(pb)pb.style.display='none';return;}
   let price=null;
   if(pt==='free') price=0;
-  else if(pt==='weekend'&&item.weekend_rate) price=item.weekend_rate*qty;
-  else if(item.daily_rate) price=item.daily_rate*days*qty;
-  if(price!==null){pd.classList.remove('hidden');document.getElementById('rf-price-val').textContent=fmt(price);}
-  else pd.classList.add('hidden');
+  else if(pt==='weekend'&&itm?.wknd) price=itm.wknd*qty;
+  else if(itm?.day) price=itm.day*days(s,e_)*qty;
+  if(price!==null&&pb&&pv){pb.style.display='flex';pv.textContent=fmt(price);}
+  else if(pb) pb.style.display='none';
 }
 
-function checkRentalAvail(){
-  const item_sel=document.getElementById('rf-item'), start_in=document.getElementById('rf-start'), end_in=document.getElementById('rf-end'), qty_in=document.getElementById('rf-qty'), el=document.getElementById('rf-avail');
-  if(!item_sel||!start_in||!end_in||!el) return;
-  const itemId=parseInt(item_sel.value), start=start_in.value, end=end_in.value, qty=parseInt(qty_in?.value)||1;
-  if(!itemId||!start||!end){el.classList.add('hidden');return;}
-  const av=checkAvail(itemId,start,end,qty);
-  el.classList.remove('hidden');
-  el.style.background=av.ok?'#f0fdf4':'#fef2f2';
-  el.style.color=av.ok?'#15803d':'#dc2626';
-  el.textContent=av.ok?`✓ Verfügbar (${av.avail} von ${av.total})`:`✗ Nicht genug! Nur ${av.avail} von ${av.total} verfügbar`;
+function rfAvail(){
+  const isel=document.getElementById('rf-iid'),sd=document.getElementById('rf-sd'),ed=document.getElementById('rf-ed'),qty_el=document.getElementById('rf-qty'),el=document.getElementById('rf-avail');
+  if(!el)return;
+  const iid=isel?parseInt(isel.value):null;
+  const s=sd?.value,e_=ed?.value,qty=parseInt(qty_el?.value)||1;
+  if(!iid||!s||!e_){el.style.display='none';return;}
+  const av=avail(iid,s,e_,qty);
+  el.style.display='flex';el.style.alignItems='center';el.style.gap='8px';
+  if(av.ok){el.style.background='#DCFCE7';el.style.color='#15803D';el.innerHTML=`<span style="font-size:18px">✓</span> Verfügbar (${av.n} von ${av.total})`;}
+  else{el.style.background='#FEE2E2';el.style.color='#DC2626';el.innerHTML=`<span style="font-size:18px">✗</span> Nicht verfügbar! Nur ${av.n} von ${av.total} frei`;}
 }
 
-function deleteRental(id){
-  const r=S.rentals.find(x=>x.id===id); if(!r) return;
-  confirm_(`Verleihvorgang für "${itemName(r.item_id)}" an ${r.borrower_name} löschen?`,()=>{
-    S.rentals=S.rentals.filter(x=>x.id!==id); save(); toast('Verleih gelöscht'); render();
-  });
+function saveRental(ev,id){
+  ev.preventDefault();const f=ev.target;
+  const iid_el=document.getElementById('rf-iid');
+  const iid=iid_el?parseInt(iid_el.value):(id?D.rentals.find(r=>r.id===id)?.iid:null);
+  const s=f.sd.value,e_=f.ed.value,qty=parseInt(f.qty.value)||1;
+  if(!iid){toast('Gegenstand wählen','err');return;}
+  if(e_<s){toast('Enddatum vor Startdatum','err');return;}
+  const av=avail(iid,s,e_,qty,id);
+  if(!av.ok){toast(`Nicht verfügbar! Nur ${av.n} verfügbar`,'err');return;}
+  const pt=f.pt.value;
+  const itm=item(iid);
+  let total=null;
+  if(pt==='custom') total=parseFloat(f.total?.value)||null;
+  else if(pt==='weekend'&&itm?.wknd) total=itm.wknd*qty;
+  else if(pt==='daily'&&itm?.day) total=itm.day*days(s,e_)*qty;
+  const data={iid,name:f.bname.value.trim(),phone:f.bphone.value.trim(),email:f.bemail.value.trim(),addr:f.baddr.value.trim(),s,e:e_,qty,status:f.status?.value||'reserviert',pt,total,notes:f.notes.value.trim()};
+  if(!data.name){toast('Name ist Pflichtfeld','err');return;}
+  if(id){Object.assign(D.rentals.find(r=>r.id===id),data);toast('Gespeichert');}
+  else{D.rentals.push({id:nid(),...data});toast('Verleih angelegt');}
+  save();closeModal();render('rentals');
 }
 
-// ─── WAREHOUSES PAGE ─────────────────────────────────────────────────────────
-function renderWarehouses(){
-  let html=`<div class="p-4 space-y-4">
-    <button onclick="openWhForm()" class="btn w-full" style="background:#2563eb;color:white">+ Neue Lagerhalle</button>`;
-  S.warehouses.forEach(wh=>{
-    const locs=S.locations.filter(l=>l.warehouse_id===wh.id);
-    html+=`<div class="card overflow-hidden">
-      <div class="p-4 flex items-start gap-3">
-        <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-xl" style="background:#dbeafe">🏭</div>
-        <div class="flex-1"><div class="font-semibold text-slate-900">${esc(wh.name)}</div>${wh.address?`<div class="text-xs text-slate-500 mt-0.5">📍 ${esc(wh.address)}</div>`:''}<div class="text-xs text-slate-400 mt-0.5">${locs.length} Lagerplätze</div></div>
-        <div class="flex gap-1">
-          <button onclick="openWhForm(${wh.id})" class="p-2 rounded-lg text-slate-400" style="background:#f8fafc">✏️</button>
-          <button onclick="deleteWh(${wh.id})" class="p-2 rounded-lg text-red-400" style="background:#fff5f5">🗑</button>
+function delRental(id){
+  const r=D.rentals.find(x=>x.id===id);if(!r)return;
+  confirm_(`Verleih "${item(r.iid)?.name||'?'}" an ${r.name} löschen?`,()=>{D.rentals=D.rentals.filter(x=>x.id!==id);save();toast('Gelöscht');render('rentals');});
+}
+
+// ── WAREHOUSES PAGE ──────────────────────────────────────────────────────────
+function renderWH(){
+  let h=`<div style="background:linear-gradient(135deg,#1E3A8A,#2563EB,#3B82F6);padding:max(16px,env(safe-area-inset-top,16px)) 16px 20px">
+    <div style="font-size:22px;font-weight:800;color:#fff">Lagerhallen</div>
+    <div style="font-size:14px;color:rgba(255,255,255,.7);margin-top:2px">${D.warehouses.length} Hallen · ${D.locations.length} Lagerplätze</div>
+  </div>
+  <div style="padding:16px;display:flex;flex-direction:column;gap:12px" class="fadeUp">
+    <button class="btn btn-p w-full" onclick="openWhForm()" style="width:100%">+ Neue Lagerhalle</button>`;
+  D.warehouses.forEach(w=>{
+    const locs=D.locations.filter(l=>l.wid===w.id);
+    h+=`<div class="c shadow">
+      <div style="padding:16px;display:flex;align-items:flex-start;gap:12px">
+        <div style="width:46px;height:46px;border-radius:14px;background:#DBEAFE;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">🏭</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:17px;font-weight:700;color:var(--t1)">${e(w.name)}</div>
+          ${w.address?`<div style="font-size:13px;color:var(--t2);margin-top:2px">📍 ${e(w.address)}</div>`:''}
+          <div style="font-size:12px;color:var(--t3);margin-top:4px">${locs.length} Lagerplatz${locs.length!==1?'e':''}</div>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button onclick="openWhForm(${w.id})" style="width:34px;height:34px;border-radius:10px;background:#F1F5F9;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--t2)" stroke-width="2.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button onclick="delWH(${w.id})" style="width:34px;height:34px;border-radius:10px;background:#FEE2E2;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--err)" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+          </button>
         </div>
       </div>
-      <div class="border-t border-slate-100">
-        ${locs.map(loc=>{
-          const cnt=S.items.filter(i=>i.location_id===loc.id).length;
-          return `<div class="flex items-center gap-3 px-4 py-3 border-b border-slate-50">
-            <span class="text-slate-400">📍</span>
-            <div class="flex-1"><div class="text-sm font-medium text-slate-800">${esc(loc.name)}</div>${cnt?`<div class="text-xs text-blue-600">${cnt} Gegenstand${cnt!==1?'e':''}</div>`:''}</div>
-            <div class="flex gap-1">
-              <button onclick="openLocForm(${wh.id},${loc.id})" class="p-1.5 rounded-lg text-slate-400 text-sm" style="background:#f8fafc">✏️</button>
-              <button onclick="deleteLoc(${loc.id})" class="p-1.5 rounded-lg text-red-400 text-sm" style="background:#fff5f5">🗑</button>
+      ${locs.length?`<div style="border-top:1px solid var(--sep)">
+        ${locs.map((l,i)=>{
+          const cnt=D.items.filter(it=>it.lid===l.id).length;
+          return `<div class="list-row" style="${i===locs.length-1?'border:none':''}">
+            <div style="width:36px;height:36px;border-radius:10px;background:#F8FAFC;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px">📍</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:600;color:var(--t1)">${e(l.name)}</div>
+              ${cnt?`<div style="font-size:12px;color:var(--p);margin-top:1px">${cnt} Gegenstand${cnt!==1?'e':''}</div>`:
+              `<div style="font-size:12px;color:var(--t3)">leer</div>`}
+            </div>
+            <div style="display:flex;gap:6px">
+              <button onclick="openLocForm(${w.id},${l.id})" style="width:30px;height:30px;border-radius:8px;background:#F1F5F9;border:none;cursor:pointer;font-size:13px">✏️</button>
+              <button onclick="delLoc(${l.id})" style="width:30px;height:30px;border-radius:8px;background:#FEE2E2;border:none;cursor:pointer;font-size:13px">🗑</button>
             </div>
           </div>`;
         }).join('')}
-        <button onclick="openLocForm(${wh.id})" class="w-full py-3 px-4 text-sm text-blue-600 font-medium flex items-center gap-2">+ Lagerplatz hinzufügen</button>
-      </div>
+      </div>`:''}
+      <button onclick="openLocForm(${w.id})" style="width:100%;padding:13px 16px;background:none;border:none;border-top:1px solid var(--sep);font-size:14px;color:var(--p);font-weight:700;cursor:pointer;text-align:left">+ Lagerplatz hinzufügen</button>
     </div>`;
   });
-  html+=`</div>`;
-  return html;
+  h+=`</div>`;
+  return h;
 }
 
 function openWhForm(id=null){
-  const wh=id?S.warehouses.find(x=>x.id===id):null;
-  openModal(wh?'Lagerhalle bearbeiten':'Neue Lagerhalle',
-    `<form onsubmit="saveWh(event,${id||'null'})"><div class="space-y-3">
-      <div><label class="text-sm font-medium text-slate-700 block mb-1">Name *</label><input class="input" name="name" required value="${esc(wh?.name||'')}" placeholder="z.B. Lagerhalle 1"></div>
-      <div><label class="text-sm font-medium text-slate-700 block mb-1">Adresse</label><input class="input" name="address" value="${esc(wh?.address||'')}" placeholder="Musterstraße 1, 12345 Stadt"></div>
-      <div class="flex gap-3 pt-1">
-        <button type="button" onclick="closeModal()" class="btn flex-1" style="background:#f1f5f9;color:#475569">Abbrechen</button>
-        <button type="submit" class="btn flex-1" style="background:#2563eb;color:white">Speichern</button>
+  const w=id?wh(id):null;
+  openModal(w?'Lagerhalle bearbeiten':'Neue Lagerhalle',
+    `<form onsubmit="saveWH(event,${id||'null'})"><div style="display:flex;flex-direction:column;gap:14px">
+      <div class="field"><label class="lbl">Name *</label><input class="inp" name="name" required placeholder="z.B. Lagerhalle 1" value="${e(w?.name||'')}"></div>
+      <div class="field"><label class="lbl">Adresse</label><input class="inp" name="address" placeholder="Musterstraße 1, 12345 Musterstadt" value="${e(w?.address||'')}"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-bottom:8px">
+        <button type="button" class="btn btn-s" onclick="closeModal()">Abbrechen</button>
+        <button type="submit" class="btn btn-p">Speichern</button>
       </div>
     </div></form>`);
 }
-function saveWh(e,id){
-  e.preventDefault();const f=e.target;
+function saveWH(ev,id){
+  ev.preventDefault();const f=ev.target;
   const data={name:f.name.value.trim(),address:f.address.value.trim()};
-  if(!data.name){toast('Name Pflichtfeld','error');return;}
-  if(id){Object.assign(S.warehouses.find(x=>x.id===id),data);toast('Lagerhalle gespeichert');}
-  else{S.warehouses.push({id:uid(),...data});toast('Lagerhalle angelegt');}
-  save();closeModal();render();
+  if(!data.name){toast('Name Pflichtfeld','err');return;}
+  if(id){Object.assign(wh(id),data);toast('Gespeichert');}
+  else{D.warehouses.push({id:nid(),...data});toast('Lagerhalle angelegt');}
+  save();closeModal();render('warehouses');
 }
-function deleteWh(id){
-  const wh=S.warehouses.find(x=>x.id===id);
-  const haslocs=S.locations.some(l=>l.warehouse_id===id);
-  if(haslocs){toast('Zuerst alle Lagerplätze löschen','error');return;}
-  confirm_(`"${wh.name}" löschen?`,()=>{S.warehouses=S.warehouses.filter(x=>x.id!==id);save();toast('Gelöscht');render();});
+function delWH(id){
+  if(D.locations.some(l=>l.wid===id)){toast('Zuerst alle Lagerplätze löschen','err');return;}
+  confirm_(`"${wh(id)?.name}" löschen?`,()=>{D.warehouses=D.warehouses.filter(x=>x.id!==id);save();toast('Gelöscht');render('warehouses');});
 }
-function openLocForm(warehouseId,locId=null){
-  const loc=locId?S.locations.find(x=>x.id===locId):null;
-  openModal(loc?'Lagerplatz bearbeiten':'Neuer Lagerplatz',
-    `<form onsubmit="saveLoc(event,${warehouseId},${locId||'null'})"><div class="space-y-3">
-      <div><label class="text-sm font-medium text-slate-700 block mb-1">Name *</label><input class="input" name="name" required value="${esc(loc?.name||'')}" placeholder="z.B. Regal A"></div>
-      <div class="flex gap-3 pt-1">
-        <button type="button" onclick="closeModal()" class="btn flex-1" style="background:#f1f5f9;color:#475569">Abbrechen</button>
-        <button type="submit" class="btn flex-1" style="background:#2563eb;color:white">Speichern</button>
+function openLocForm(wid,lid=null){
+  const l=lid?loc(lid):null;
+  openModal(l?'Lagerplatz bearbeiten':'Neuer Lagerplatz',
+    `<form onsubmit="saveLoc(event,${wid},${lid||'null'})"><div style="display:flex;flex-direction:column;gap:14px">
+      <div class="field"><label class="lbl">Name *</label><input class="inp" name="name" required placeholder="z.B. Regal A" value="${e(l?.name||'')}"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-bottom:8px">
+        <button type="button" class="btn btn-s" onclick="closeModal()">Abbrechen</button>
+        <button type="submit" class="btn btn-p">Speichern</button>
       </div>
     </div></form>`);
 }
-function saveLoc(e,whId,locId){
-  e.preventDefault();const f=e.target;
-  const name=f.name.value.trim();if(!name){toast('Name Pflichtfeld','error');return;}
-  if(locId){S.locations.find(x=>x.id===locId).name=name;toast('Lagerplatz gespeichert');}
-  else{S.locations.push({id:uid(),warehouse_id:whId,name});toast('Lagerplatz angelegt');}
-  save();closeModal();render();
+function saveLoc(ev,wid,lid){
+  ev.preventDefault();const name=ev.target.name.value.trim();
+  if(!name){toast('Name Pflichtfeld','err');return;}
+  if(lid){loc(lid).name=name;toast('Gespeichert');}
+  else{D.locations.push({id:nid(),wid,name});toast('Lagerplatz angelegt');}
+  save();closeModal();render('warehouses');
 }
-function deleteLoc(id){
-  const inUse=S.items.some(i=>i.location_id===id);
-  if(inUse){toast('Lagerplatz noch in Verwendung','error');return;}
-  confirm_('Lagerplatz löschen?',()=>{S.locations=S.locations.filter(x=>x.id!==id);save();toast('Gelöscht');render();});
+function delLoc(id){
+  if(D.items.some(i=>i.lid===id)){toast('Lagerplatz noch in Verwendung','err');return;}
+  confirm_('Lagerplatz löschen?',()=>{D.locations=D.locations.filter(x=>x.id!==id);save();toast('Gelöscht');render('warehouses');});
 }
 
-// ─── MORE PAGE ───────────────────────────────────────────────────────────────
+// ── MORE PAGE ────────────────────────────────────────────────────────────────
 function renderMore(){
-  let html=`<div class="p-4 space-y-5">
-    <div><div class="font-semibold text-slate-800 mb-3">Kategorien</div>
-      <div class="card overflow-hidden">
-        ${S.categories.map(c=>`<div class="flex items-center gap-3 p-3.5 border-b border-slate-50 last:border-0">
-          <div class="w-8 h-8 rounded-full flex-shrink-0" style="background:${c.color}"></div>
-          <div class="flex-1 font-medium text-slate-800">${esc(c.name)}</div>
-          <div class="flex gap-1">
-            <button onclick="openCatForm(${c.id})" class="p-1.5 rounded text-slate-400 text-sm">✏️</button>
-            <button onclick="deleteCat(${c.id})" class="p-1.5 rounded text-red-400 text-sm">🗑</button>
+  const catColors=['#EF4444','#F97316','#F59E0B','#10B981','#3B82F6','#6366F1','#8B5CF6','#EC4899','#64748B'];
+  let h=`<div style="background:linear-gradient(135deg,#1E3A8A,#2563EB,#3B82F6);padding:max(16px,env(safe-area-inset-top,16px)) 16px 20px">
+    <div style="font-size:22px;font-weight:800;color:#fff">Einstellungen</div>
+  </div>
+  <div style="padding:16px;display:flex;flex-direction:column;gap:20px" class="fadeUp">
+    <div>
+      <div class="sec-hdr" style="padding:0 0 10px">Kategorien</div>
+      <div class="igroup shadow">
+        ${D.categories.map((c,i)=>`<div class="srow" style="${i===D.categories.length-1?'border:none':''}">
+          <div class="srow-icon" style="background:${c.color}20"><span style="font-size:18px">${c.emoji||'📦'}</span></div>
+          <div style="flex:1;font-weight:600">${e(c.name)}</div>
+          <div style="font-size:13px;color:var(--t3);margin-right:8px">${D.items.filter(i=>i.cid===c.id).length} Artikel</div>
+          <div style="display:flex;gap:6px">
+            <button onclick="openCatForm(${c.id})" style="width:30px;height:30px;border-radius:8px;background:#F1F5F9;border:none;cursor:pointer;font-size:13px">✏️</button>
+            <button onclick="delCat(${c.id})" style="width:30px;height:30px;border-radius:8px;background:#FEE2E2;border:none;cursor:pointer;font-size:13px">🗑</button>
           </div>
         </div>`).join('')}
-        <button onclick="openCatForm()" class="w-full py-3 px-4 text-sm text-blue-600 font-medium flex items-center gap-2">+ Kategorie hinzufügen</button>
+        <button onclick="openCatForm()" style="width:100%;padding:14px 16px;background:none;border:none;border-top:1px solid var(--sep);font-size:14px;color:var(--p);font-weight:700;cursor:pointer;text-align:left">+ Kategorie hinzufügen</button>
       </div>
     </div>
-    <div class="card p-4 space-y-3">
-      <div class="font-semibold text-slate-800">Demo-Daten</div>
-      <p class="text-sm text-slate-500">Alle Daten werden in diesem Browser gespeichert (localStorage).</p>
-      <button onclick="resetDemo()" class="btn w-full" style="background:#fee2e2;color:#dc2626">🔄 Demo-Daten zurücksetzen</button>
+    <div>
+      <div class="sec-hdr" style="padding:0 0 10px">Demo & Daten</div>
+      <div class="igroup shadow">
+        <div class="srow" style="border:none;cursor:default">
+          <div class="srow-icon" style="background:#DCFCE7">💾</div>
+          <div style="flex:1"><div style="font-weight:600">Lokaler Speicher</div><div style="font-size:13px;color:var(--t2)">Alle Daten bleiben auf diesem Gerät</div></div>
+        </div>
+      </div>
+      <button onclick="resetDemo()" class="btn btn-d" style="width:100%;margin-top:10px">🔄 Demo-Daten zurücksetzen</button>
     </div>
-    <div class="card p-4 text-sm text-slate-500 space-y-1">
-      <div class="font-semibold text-slate-700 mb-2">ℹ️ Info</div>
-      <div>📦 Vereinsinventar Demo</div>
-      <div>Mobile-first App für Bürgervereine</div>
-      <div class="text-xs text-slate-400 mt-2">Dies ist eine Demo ohne Serverbindung. Alle Daten bleiben auf diesem Gerät.</div>
+    <div class="igroup shadow" style="padding:16px">
+      <div style="font-size:13px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Info</div>
+      <div style="font-size:15px;font-weight:700;color:var(--t1)">Vereinsinventar</div>
+      <div style="font-size:14px;color:var(--t2);margin-top:4px">Inventar- & Verleihverwaltung für Bürgervereine</div>
+      <div style="font-size:13px;color:var(--t3);margin-top:8px">Dies ist eine Demo-Version ohne Serveranbindung.</div>
     </div>
+    <div style="height:8px"></div>
   </div>`;
-  return html;
+  return h;
 }
 
 function openCatForm(id=null){
-  const cat=id?S.categories.find(x=>x.id===id):null;
-  const colors=['#ef4444','#f97316','#f59e0b','#10b981','#3b82f6','#6366f1','#8b5cf6','#ec4899','#6b7280'];
-  openModal(cat?'Kategorie bearbeiten':'Neue Kategorie',
-    `<form onsubmit="saveCat(event,${id||'null'})"><div class="space-y-3">
-      <div><label class="text-sm font-medium text-slate-700 block mb-1">Name *</label><input class="input" name="name" required value="${esc(cat?.name||'')}" placeholder="z.B. Werkzeug"></div>
-      <div><label class="text-sm font-medium text-slate-700 block mb-2">Farbe</label>
-        <div class="flex flex-wrap gap-2">${colors.map(c=>`<button type="button" onclick="document.getElementById('cat-color-input').value='${c}';document.querySelectorAll('.color-dot').forEach(d=>{d.style.outline='none'});this.style.outline='3px solid #1e293b'" class="color-dot w-8 h-8 rounded-full" style="background:${c};outline:${cat?.color===c?'3px solid #1e293b':'none'}"></button>`).join('')}
-          <input type="hidden" name="color" id="cat-color-input" value="${cat?.color||'#6366f1'}">
-        </div>
+  const c=id?D.categories.find(x=>x.id===id):null;
+  const colors=['#EF4444','#F97316','#F59E0B','#10B981','#22C55E','#3B82F6','#6366F1','#8B5CF6','#EC4899','#64748B'];
+  const emojis=['⛺','🪑','⚡','🍳','📦','🔧','🎪','🚛','🎭','📋'];
+  let h=`<form onsubmit="saveCat(event,${id||'null'})"><div style="display:flex;flex-direction:column;gap:14px">
+    <div class="field"><label class="lbl">Name *</label><input class="inp" name="name" required placeholder="z.B. Werkzeug" value="${e(c?.name||'')}"></div>
+    <div><label class="lbl">Farbe</label>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:6px">
+        ${colors.map(col=>`<button type="button" onclick="document.getElementById('ccolor').value='${col}';document.querySelectorAll('.cc-dot').forEach(d=>d.style.border='none');this.style.border='3px solid #0F172A'" class="cc-dot" style="width:36px;height:36px;border-radius:50%;background:${col};border:${c?.color===col?'3px solid #0F172A':'none'};cursor:pointer"></button>`).join('')}
+        <input type="hidden" name="color" id="ccolor" value="${c?.color||'#6366F1'}">
       </div>
-      <div class="flex gap-3 pt-1">
-        <button type="button" onclick="closeModal()" class="btn flex-1" style="background:#f1f5f9;color:#475569">Abbrechen</button>
-        <button type="submit" class="btn flex-1" style="background:#2563eb;color:white">Speichern</button>
+    </div>
+    <div><label class="lbl">Emoji</label>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px">
+        ${emojis.map(em=>`<button type="button" onclick="document.getElementById('cemoji').value='${em}';document.querySelectorAll('.ce-btn').forEach(b=>b.style.background='#F1F5F9');this.style.background='#DBEAFE'" class="ce-btn" style="width:44px;height:44px;border-radius:12px;font-size:20px;background:${c?.emoji===em?'#DBEAFE':'#F1F5F9'};border:none;cursor:pointer">${em}</button>`).join('')}
+        <input type="hidden" name="emoji" id="cemoji" value="${c?.emoji||'📦'}">
       </div>
-    </div></form>`);
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-bottom:8px">
+      <button type="button" class="btn btn-s" onclick="closeModal()">Abbrechen</button>
+      <button type="submit" class="btn btn-p">Speichern</button>
+    </div>
+  </div></form>`;
+  openModal(c?'Kategorie bearbeiten':'Neue Kategorie',h);
 }
-function saveCat(e,id){
-  e.preventDefault();const f=e.target;
-  const data={name:f.name.value.trim(),color:f.color.value||'#6366f1'};
-  if(!data.name){toast('Name Pflichtfeld','error');return;}
-  if(id){Object.assign(S.categories.find(x=>x.id===id),data);toast('Kategorie gespeichert');}
-  else{S.categories.push({id:uid(),...data});toast('Kategorie angelegt');}
-  save();closeModal();render();
+function saveCat(ev,id){
+  ev.preventDefault();const f=ev.target;
+  const data={name:f.name.value.trim(),color:f.color.value||'#6366F1',emoji:f.emoji.value||'📦'};
+  if(!data.name){toast('Name Pflichtfeld','err');return;}
+  if(id){Object.assign(D.categories.find(x=>x.id===id),data);toast('Gespeichert');}
+  else{D.categories.push({id:nid(),...data});toast('Kategorie angelegt');}
+  save();closeModal();render('more');
 }
-function deleteCat(id){
-  const inUse=S.items.some(i=>i.category_id===id);
-  if(inUse){toast('Kategorie noch in Verwendung','error');return;}
-  confirm_('Kategorie löschen?',()=>{S.categories=S.categories.filter(x=>x.id!==id);save();toast('Gelöscht');render();});
+function delCat(id){
+  if(D.items.some(i=>i.cid===id)){toast('Kategorie noch in Verwendung','err');return;}
+  confirm_('Kategorie löschen?',()=>{D.categories=D.categories.filter(x=>x.id!==id);save();toast('Gelöscht');render('more');});
 }
 function resetDemo(){
   confirm_('Alle Daten auf Demo-Zustand zurücksetzen?',()=>{
-    S=JSON.parse(JSON.stringify(DEMO));nextId=getNextId();save();toast('Demo-Daten zurückgesetzt');render();
+    D=JSON.parse(JSON.stringify(DEMO));_nid=0;save();toast('Demo-Daten zurückgesetzt');go('dashboard');
   });
 }
 
-// ─── MODAL SYSTEM ────────────────────────────────────────────────────────────
-function openModal(title, body){
-  document.getElementById('modal-title').textContent=title;
-  document.getElementById('modal-body').innerHTML=body;
-  document.getElementById('overlay').classList.remove('hidden');
-  const m=document.getElementById('modal');
-  m.classList.remove('hidden');
-  requestAnimationFrame(()=>m.classList.remove('sheet'));
-  setTimeout(()=>m.style.transform='translateY(0)',10);
-  m.style.transform='translateY(100%)';
-  setTimeout(()=>m.style.transform='',10);
+// ── MODAL ────────────────────────────────────────────────────────────────────
+let _startY=0,_isDrag=false;
+function openModal(title,body){
+  document.getElementById('mtitle').textContent=title;
+  document.getElementById('mbody').innerHTML=body;
+  const ov=document.getElementById('ov'),m=document.getElementById('modal');
+  ov.classList.add('show');m.classList.add('open');
+  // Swipe to close
+  const sh=m.querySelector('.sheet-handle');
+  if(sh){
+    sh.addEventListener('touchstart',e_=>{_startY=e_.touches[0].clientY;_isDrag=true;},{passive:true});
+    sh.addEventListener('touchmove',e_=>{if(!_isDrag)return;const dy=e_.touches[0].clientY-_startY;if(dy>0)m.style.transform=`translateY(${dy}px)`;},{passive:true});
+    sh.addEventListener('touchend',e_=>{if(!_isDrag)return;_isDrag=false;const dy=e_.changedTouches[0].clientY-_startY;if(dy>80)closeModal();else m.style.transform='';});
+  }
 }
 function closeModal(){
-  const m=document.getElementById('modal');
-  m.style.transform='translateY(100%)';
-  setTimeout(()=>{
-    m.classList.add('hidden');
-    m.style.transform='';
-    document.getElementById('overlay').classList.add('hidden');
-  },300);
+  const ov=document.getElementById('ov'),m=document.getElementById('modal');
+  m.style.transform='';m.classList.remove('open');ov.classList.remove('show');
+  setTimeout(()=>{document.getElementById('mbody').innerHTML='';},350);
 }
 
-// ─── CONFIRM DIALOG ──────────────────────────────────────────────────────────
-function confirm_(msg, cb){
-  document.getElementById('confirm-title').textContent='Bestätigung';
-  document.getElementById('confirm-msg').textContent=msg;
-  document.getElementById('confirm-overlay').classList.remove('hidden');
-  document.getElementById('confirm-ok').onclick=()=>{
-    document.getElementById('confirm-overlay').classList.add('hidden');cb();
-  };
+// ── CONFIRM ──────────────────────────────────────────────────────────────────
+function confirm_(msg,cb){
+  const d=document.getElementById('cdlg');
+  document.getElementById('cdlg-m').textContent=msg;
+  d.style.display='flex';
+  document.getElementById('cdlg-ok').onclick=()=>{d.style.display='none';cb();};
 }
 
-// ─── TOAST ───────────────────────────────────────────────────────────────────
-function toast(msg,type='success'){
-  const c=document.getElementById('toast-container');
+// ── TOAST ────────────────────────────────────────────────────────────────────
+function toast(msg,type='ok'){
+  const c=document.getElementById('toasts');
   const el=document.createElement('div');
-  el.className='toast rounded-xl px-4 py-3 text-sm font-medium shadow-lg flex items-center gap-2';
-  el.style.background=type==='error'?'#ef4444':type==='warning'?'#f59e0b':'#10b981';
-  el.style.color='white';
-  el.innerHTML=`<span>${type==='error'?'✕':type==='warning'?'⚠':'✓'}</span><span>${esc(msg)}</span>`;
+  el.className='toast-el';
+  el.style.cssText=`background:${type==='err'?'#DC2626':type==='warn'?'#D97706':'#16A34A'};color:#fff;padding:12px 16px;border-radius:14px;font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px;box-shadow:0 4px 20px rgba(0,0,0,.2);pointer-events:all`;
+  el.innerHTML=`<span style="font-size:16px">${type==='err'?'✕':type==='warn'?'⚠':'✓'}</span>${msg}`;
   c.appendChild(el);
-  setTimeout(()=>el.remove(),3200);
+  setTimeout(()=>el.remove(),3300);
 }
 
-// ─── INIT ─────────────────────────────────────────────────────────────────────
-navigate('dashboard');
+// ── INIT ─────────────────────────────────────────────────────────────────────
+go('dashboard');
 </script>
 </body>
 </html>
