@@ -544,8 +544,8 @@ function openItemDetail(id){
     </div>`;}).join('')}
   </div>`:''}
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-bottom:8px">
-    <button class="btn btn-s" onclick="closeModal();openItemForm(${id})">✏️ Bearbeiten</button>
-    <button class="btn btn-p" onclick="closeModal();openRentalForm(null,${id})">+ Verleihen</button>
+    <button class="btn btn-s" onclick="closeModal();setTimeout(()=>openItemForm(${id}),360)">✏️ Bearbeiten</button>
+    <button class="btn btn-p" onclick="closeModal();setTimeout(()=>openRentalForm(null,${id}),360)">+ Verleihen</button>
   </div>`;
   openModal(itm.name,h);
 }
@@ -831,7 +831,7 @@ function tlRentalTap(id){
     <div style="display:flex;border-top:1px solid var(--sep)">
       ${r.status==='reserviert'?`<button onclick="setStatus(${id},'ausgeliehen');renderTimelineView&&render('rentals')" style="flex:1;padding:12px 6px;background:none;border:none;font-size:13px;font-weight:700;color:var(--p);cursor:pointer">✓ Ausgeliehen</button><div style="width:1px;background:var(--sep)"></div>`:''}
       ${r.status==='ausgeliehen'?`<button onclick="setStatus(${id},'zurückgegeben');render('rentals')" style="flex:1;padding:12px 6px;background:none;border:none;font-size:13px;font-weight:700;color:var(--ok);cursor:pointer">✓ Zurückgegeben</button><div style="width:1px;background:var(--sep)"></div>`:''}
-      <button onclick="closeModal();openRentalForm(${id})" style="flex:1;padding:12px 6px;background:none;border:none;font-size:13px;font-weight:600;color:var(--t2);cursor:pointer">Bearbeiten</button>
+      <button onclick="closeModal();setTimeout(()=>openRentalForm(${id}),360)" style="flex:1;padding:12px 6px;background:none;border:none;font-size:13px;font-weight:600;color:var(--t2);cursor:pointer">Bearbeiten</button>
     </div>
   </div>`;
 }
