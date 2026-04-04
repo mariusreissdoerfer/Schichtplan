@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Vereinsinventar">
+<title>Vereinsinventar Demo</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  *{-webkit-tap-highlight-color:transparent;box-sizing:border-box}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f8fafc;overscroll-behavior:none}
+  input,select,textarea{font-size:16px!important}
+  ::-webkit-scrollbar{display:none}
+  .safe-pb{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 72px)}
+  .nav-bar{padding-bottom:env(safe-area-inset-bottom,0px)}
+  .sheet{transition:transform .3s cubic-bezier(.32,.72,0,1)}
+  .sheet.hidden{transform:translateY(100%)}
+  .toast{animation:slideIn .3s ease,fadeOut .3s ease 2.7s forwards}
+  @keyframes slideIn{from{transform:translateY(-20px);opacity:0}to{transform:translateY(0);opacity:1}}
+  @keyframes fadeOut{to{opacity:0;pointer-events:none}}
+  .badge{display:inline-flex;align-items:center;padding:.2rem .55rem;border-radius:9999px;font-size:.7rem;font-weight:600}
+  .chip{display:inline-flex;align-items:center;padding:.3rem .75rem;border-radius:9999px;font-size:.8rem;cursor:pointer;border:1.5px solid;transition:all .15s}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;padding:.7rem 1.1rem;border-radius:.85rem;font-weight:500;font-size:.9rem;cursor:pointer;transition:all .15s;border:none;outline:none}
+  .btn:active{transform:scale(.96)}
+  .card{background:white;border-radius:1.1rem;border:1px solid #f1f5f9;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+  .input{width:100%;border:1.5px solid #e2e8f0;border-radius:.85rem;padding:.7rem 1rem;font-size:16px;background:white;outline:none;transition:border-color .15s;color:#1e293b}
+  .input:focus{border-color:#3b82f6}
+  .toggle{position:relative;width:3rem;height:1.5rem;background:#d1d5db;border-radius:9999px;cursor:pointer;transition:background .2s}
+  .toggle.on{background:#2563eb}
+  .toggle::after{content:'';position:absolute;top:.15rem;left:.15rem;width:1.2rem;height:1.2rem;background:white;border-radius:50%;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+  .toggle.on::after{transform:translateX(1.5rem)}
+</style>
+</head>
+<body>
+
+<!-- TOAST -->
+<div id="toast-container" class="fixed top-4 left-1/2 z-50 flex flex-col gap-2" style="transform:translateX(-50%);width:calc(100% - 2rem);max-width:360px;pointer-events:none"></div>
+
+<!-- MODAL OVERLAY -->
+<div id="overlay" class="fixed inset-0 bg-black/50 z-30 hidden" onclick="closeModal()"></div>
+
+<!-- MODAL SHEET -->
+<div id="modal" class="sheet hidden fixed bottom-0 left-0 right-0 z-40 bg-white rounded-t-3xl shadow-2xl flex flex-col" style="max-height:92vh">
+  <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100 flex-shrink-0">
+    <h2 id="modal-title" class="text-lg font-semibold text-slate-900"></h2>
+    <button onclick="closeModal()" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 text-xl leading-none">&times;</button>
+  </div>
+  <div id="modal-body" class="overflow-y-auto flex-1 p-5" style="padding-bottom:calc(env(safe-area-inset-bottom,0px) + 1.25rem)"></div>
+</div>
+
+<!-- CONFIRM DIALOG -->
+<div id="confirm-overlay" class="fixed inset-0 bg-black/50 z-50 hidden flex items-end sm:items-center justify-center p-4">
+  <div class="bg-white rounded-2xl w-full max-w-sm p-5">
+    <h3 id="confirm-title" class="font-semibold text-slate-900 mb-2"></h3>
+    <p id="confirm-msg" class="text-sm text-slate-500 mb-5"></p>
+    <div class="flex gap-3">
+      <button onclick="document.getElementById('confirm-overlay').classList.add('hidden')" class="btn flex-1" style="background:#f1f5f9;color:#475569">Abbrechen</button>
+      <button id="confirm-ok" class="btn flex-1" style="background:#ef4444;color:white">Löschen</button>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" class="min-h-screen flex flex-col">
+  <!-- HEADER -->
+  <header class="bg-blue-600 text-white px-4 py-3 flex items-center gap-3 sticky top-0 z-20" style="padding-top:max(12px,env(safe-area-inset-top,12px))">
+    <span style="font-size:1.5rem">📦</span>
+    <div>
+      <div class="font-bold text-base leading-tight">Vereinsinventar</div>
+      <div id="header-sub" class="text-blue-200 text-xs">Demo</div>
+    </div>
+  </header>
+
+  <!-- CONTENT -->
+  <main id="content" class="flex-1 safe-pb"></main>
+
+  <!-- BOTTOM NAV -->
+  <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-20 nav-bar">
+    <div class="flex justify-around items-center h-16">
+      <button onclick="navigate('dashboard')" class="nav-btn flex flex-col items-center gap-0.5 flex-1 py-2" data-tab="dashboard">
+        <span style="font-size:1.35rem">🏠</span><span class="text-xs font-medium">Übersicht</span>
+      </button>
+      <button onclick="navigate('items')" class="nav-btn flex flex-col items-center gap-0.5 flex-1 py-2" data-tab="items">
+        <span style="font-size:1.35rem">📦</span><span class="text-xs font-medium">Inventar</span>
+      </button>
+      <button onclick="navigate('rentals')" class="nav-btn flex flex-col items-center gap-0.5 flex-1 py-2" data-tab="rentals">
+        <span style="font-size:1.35rem">📅</span><span class="text-xs font-medium">Verleih</span>
+      </button>
+      <button onclick="navigate('warehouses')" class="nav-btn flex flex-col items-center gap-0.5 flex-1 py-2" data-tab="warehouses">
+        <span style="font-size:1.35rem">🏭</span><span class="text-xs font-medium">Lager</span>
+      </button>
+      <button onclick="navigate('more')" class="nav-btn flex flex-col items-center gap-0.5 flex-1 py-2" data-tab="more">
+        <span style="font-size:1.35rem">⚙️</span><span class="text-xs font-medium">Mehr</span>
+      </button>
+    </div>
+  </nav>
+</div>
+
+<script>
+// ─── DEMO DATA ────────────────────────────────────────────────────────────────
+const DEMO = {
+  categories:[
+    {id:1,name:'Zelte & Unterkünfte',color:'#f59e0b'},
+    {id:2,name:'Möbel',color:'#10b981'},
+    {id:3,name:'Elektro',color:'#3b82f6'},
+    {id:4,name:'Küche & Catering',color:'#ef4444'},
+    {id:5,name:'Transport & Lagerung',color:'#8b5cf6'},
+  ],
+  warehouses:[
+    {id:1,name:'Lagerhalle 1',address:'Musterstraße 1, 12345 Musterstadt'},
+    {id:2,name:'Lagerhalle 2',address:'Nebenstraße 5, 12345 Musterstadt'},
+  ],
+  locations:[
+    {id:1,warehouse_id:1,name:'Eingangsbereich'},{id:2,warehouse_id:1,name:'Regal A'},
+    {id:3,warehouse_id:1,name:'Regal B'},{id:4,warehouse_id:2,name:'Hauptfläche'},
+    {id:5,warehouse_id:2,name:'Außenbereich'},
+  ],
+  items:[
+    {id:1,name:'Festzelt 6×12m',description:'Weißes Partyzelt mit 4 Seitenwänden und Eingang',category_id:1,quantity:1,condition:'gut',purchase_price:1200,is_rentable:true,daily_rate:50,weekend_rate:80,location_id:4,notes:'Heringe und Spanngurte separat im Kasten'},
+    {id:2,name:'Biertisch-Set (4+8)',description:'4 Biertische + 8 Bierbank-Garnituren, klappbar',category_id:2,quantity:5,condition:'gut',purchase_price:80,is_rentable:true,daily_rate:10,weekend_rate:15,location_id:2,notes:''},
+    {id:3,name:'Grillwagen groß',description:'Holzkohlegrillwagen mit Rädern, 120cm Grillrost',category_id:4,quantity:2,condition:'sehr gut',purchase_price:350,is_rentable:true,daily_rate:20,weekend_rate:30,location_id:1,notes:'Reinigung nach Verleih obligatorisch'},
+    {id:4,name:'Verlängerungskabel 50m',description:'Gelbes 16A Kabel mit Mehrfachsteckdose',category_id:3,quantity:3,condition:'gut',purchase_price:45,is_rentable:true,daily_rate:5,weekend_rate:8,location_id:3,notes:''},
+    {id:5,name:'IBC-Container 1000L',description:'Kunststoff-Gitterbox-Container für Wasser',category_id:5,quantity:4,condition:'befriedigend',purchase_price:180,is_rentable:false,daily_rate:null,weekend_rate:null,location_id:5,notes:'Nicht für Lebensmittel geeignet'},
+    {id:6,name:'Kunststoffbecher 0,4L',description:'Transparente Wiederverwendungsbecher',category_id:4,quantity:250,condition:'gut',purchase_price:0.8,is_rentable:true,daily_rate:15,weekend_rate:20,location_id:2,notes:'Preis pauschal, egal wie viele'},
+  ],
+  rentals:[
+    {id:1,item_id:1,borrower_name:'SVG Musterclub',borrower_phone:'0151 12345678',borrower_email:'kontakt@svg-musterclub.de',borrower_address:'Vereinsstraße 10, 12345 Musterstadt',start_date:'2026-03-28',end_date:'2026-04-01',quantity:1,status:'ausgeliehen',price_type:'daily',total_price:250,notes:'Aufbau Do, Abbau Mi'},
+    {id:2,item_id:2,borrower_name:'Familie Müller',borrower_phone:'0170 9876543',borrower_email:'',borrower_address:'Gartenweg 3, 12345 Musterstadt',start_date:'2026-04-05',end_date:'2026-04-06',quantity:2,status:'reserviert',price_type:'weekend',total_price:30,notes:'Geburtstag im Garten'},
+    {id:3,item_id:4,borrower_name:'Brauerei Hopfen GmbH',borrower_phone:'089 445566',borrower_email:'events@brauerei-hopfen.de',borrower_address:'Brauereiweg 1, 80333 München',start_date:'2026-04-10',end_date:'2026-04-12',quantity:2,status:'reserviert',price_type:'daily',total_price:30,notes:''},
+    {id:4,item_id:3,borrower_name:'Schulverein Grundschule',borrower_phone:'',borrower_email:'schulverein@gs-muster.de',borrower_address:'Schulstraße 1, 12345 Musterstadt',start_date:'2026-03-20',end_date:'2026-03-21',quantity:1,status:'zurückgegeben',price_type:'weekend',total_price:30,notes:'Frühlingsfest'},
+  ]
+};
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let S = loadState();
+let tab = 'dashboard';
+let itemFilter = '';
+let itemCatFilter = 0;
+let rentalFilter = 'alle';
+let nextId = getNextId();
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem('vi_demo');
+    if(raw) return JSON.parse(raw);
+  }catch(e){}
+  return JSON.parse(JSON.stringify(DEMO));
+}
+function save(){
+  try{ localStorage.setItem('vi_demo',JSON.stringify(S)); }catch(e){}
+}
+function getNextId(){
+  const all=[...S.items,...S.categories,...S.warehouses,...S.locations,...S.rentals];
+  return all.length ? Math.max(...all.map(x=>x.id))+1 : 100;
+}
+function uid(){ return nextId++; }
+
+// ─── NAVIGATE ─────────────────────────────────────────────────────────────────
+function navigate(t){
+  tab=t;
+  document.querySelectorAll('.nav-btn').forEach(b=>{
+    const active = b.dataset.tab===t;
+    b.style.color = active ? '#2563eb' : '#94a3b8';
+  });
+  document.getElementById('header-sub').textContent = {
+    dashboard:'Übersicht',items:'Inventar',rentals:'Verleih',warehouses:'Lagerhallen',more:'Einstellungen'
+  }[t]||'';
+  render();
+}
+
+// ─── RENDER ──────────────────────────────────────────────────────────────────
+function render(){
+  const c = document.getElementById('content');
+  if(tab==='dashboard') c.innerHTML = renderDashboard();
+  else if(tab==='items') c.innerHTML = renderItems();
+  else if(tab==='rentals') c.innerHTML = renderRentals();
+  else if(tab==='warehouses') c.innerHTML = renderWarehouses();
+  else if(tab==='more') c.innerHTML = renderMore();
+}
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmt(n){ return n!=null ? Number(n).toLocaleString('de-DE',{style:'currency',currency:'EUR'}) : '–'; }
+function fmtDate(d){ if(!d) return '–'; const p=d.split('-'); return `${p[2]}.${p[1]}.${p[0].slice(2)}`; }
+function daysBetween(a,b){ return Math.ceil((new Date(b)-new Date(a))/(864e5))+1; }
+function catName(id){ const c=S.categories.find(x=>x.id===id); return c?c.name:'–'; }
+function catColor(id){ const c=S.categories.find(x=>x.id===id); return c?c.color:'#94a3b8'; }
+function locName(id){ const l=S.locations.find(x=>x.id===id); if(!l) return '–'; const w=S.warehouses.find(x=>x.id===l.warehouse_id); return w?`${w.name} › ${l.name}`:l.name; }
+function itemName(id){ const i=S.items.find(x=>x.id===id); return i?i.name:'–'; }
+function condColor(c){ return {neuwertig:'#10b981','sehr gut':'#10b981',gut:'#3b82f6',befriedigend:'#f59e0b','reparaturbedürftig':'#ef4444'}[c]||'#94a3b8'; }
+function statusColor(s){ return {reserviert:'#f59e0b',ausgeliehen:'#3b82f6',zurückgegeben:'#10b981',storniert:'#94a3b8'}[s]||'#94a3b8'; }
+function statusBg(s){ return {reserviert:'#fef3c7',ausgeliehen:'#dbeafe',zurückgegeben:'#dcfce7',storniert:'#f1f5f9'}[s]||'#f1f5f9'; }
+function checkAvail(itemId,start,end,qty,excludeId=null){
+  const item = S.items.find(x=>x.id===itemId); if(!item) return {ok:false,avail:0};
+  const taken = S.rentals.filter(r=>r.item_id===itemId && r.id!==excludeId && !['zurückgegeben','storniert'].includes(r.status) && r.start_date<=end && r.end_date>=start).reduce((a,r)=>a+r.quantity,0);
+  const avail = item.quantity - taken;
+  return {ok:avail>=qty, avail, total:item.quantity};
+}
+
+// ─── DASHBOARD ───────────────────────────────────────────────────────────────
+function renderDashboard(){
+  const activeRentals = S.rentals.filter(r=>r.status==='ausgeliehen');
+  const reserved = S.rentals.filter(r=>r.status==='reserviert');
+  const totalItems = S.items.reduce((a,i)=>a+i.quantity,0);
+  const totalValue = S.items.reduce((a,i)=>a+(i.purchase_price||0)*i.quantity,0);
+
+  let html = `<div class="p-4 space-y-4">
+  <div class="grid grid-cols-2 gap-3">
+    <div class="card p-4"><div class="text-2xl font-bold text-slate-900">${S.items.length}</div><div class="text-sm text-slate-500">Gegenstände</div><div class="text-xs text-slate-400">${totalItems} Einheiten</div></div>
+    <div class="card p-4"><div class="text-2xl font-bold text-blue-600">${activeRentals.length}</div><div class="text-sm text-slate-500">Ausgeliehen</div><div class="text-xs text-slate-400">${reserved.length} reserviert</div></div>
+    <div class="card p-4"><div class="text-2xl font-bold text-slate-900">${S.warehouses.length}</div><div class="text-sm text-slate-500">Lagerhallen</div><div class="text-xs text-slate-400">${S.locations.length} Lagerplätze</div></div>
+    <div class="card p-4"><div class="text-2xl font-bold text-slate-900">${S.categories.length}</div><div class="text-sm text-slate-500">Kategorien</div></div>
+  </div>`;
+
+  if(totalValue>0) html+=`<div class="card p-4 flex items-center gap-3" style="background:linear-gradient(135deg,#eff6ff,#dbeafe);border-color:#bfdbfe"><span style="font-size:1.4rem">📈</span><div><div class="text-sm text-blue-700">Inventarwert gesamt</div><div class="text-xl font-bold text-blue-800">${fmt(totalValue)}</div></div></div>`;
+
+  if(activeRentals.length){
+    html+=`<div><div class="font-semibold text-slate-800 mb-2 flex items-center gap-2"><span>🔴</span> Aktuell ausgeliehen</div><div class="space-y-2">`;
+    activeRentals.forEach(r=>{
+      html+=`<div class="card p-3 flex items-center justify-between gap-2" onclick="navigate('rentals')">
+        <div class="flex-1 min-w-0"><div class="font-medium text-slate-900 truncate">${esc(itemName(r.item_id))}</div><div class="text-xs text-slate-500">${esc(r.borrower_name)} · ${r.quantity}×</div></div>
+        <div class="text-right flex-shrink-0"><span class="badge" style="background:${statusBg(r.status)};color:${statusColor(r.status)}">${r.status}</span><div class="text-xs text-slate-400 mt-1">bis ${fmtDate(r.end_date)}</div></div>
+      </div>`;
+    });
+    html+=`</div></div>`;
+  }
+  if(reserved.length){
+    html+=`<div><div class="font-semibold text-slate-800 mb-2 flex items-center gap-2"><span>🟡</span> Bevorstehend</div><div class="space-y-2">`;
+    reserved.forEach(r=>{
+      html+=`<div class="card p-3 flex items-center justify-between gap-2" onclick="navigate('rentals')">
+        <div class="flex-1 min-w-0"><div class="font-medium text-slate-900 truncate">${esc(itemName(r.item_id))}</div><div class="text-xs text-slate-500">${esc(r.borrower_name)} · ${r.quantity}×</div></div>
+        <div class="text-right flex-shrink-0"><span class="badge" style="background:${statusBg(r.status)};color:${statusColor(r.status)}">${r.status}</span><div class="text-xs text-slate-400 mt-1">${fmtDate(r.start_date)}</div></div>
+      </div>`;
+    });
+    html+=`</div></div>`;
+  }
+  if(!activeRentals.length&&!reserved.length) html+=`<div class="card p-8 text-center"><div style="font-size:3rem">✅</div><div class="text-slate-400 mt-2">Keine aktiven Verleihe</div></div>`;
+  html+=`</div>`;
+  return html;
+}
+
+// ─── ITEMS PAGE ──────────────────────────────────────────────────────────────
+function renderItems(){
+  const items = S.items.filter(i=>{
+    const ms = (i.name+' '+(i.description||'')).toLowerCase().includes(itemFilter.toLowerCase());
+    const mc = !itemCatFilter || i.category_id===itemCatFilter;
+    return ms&&mc;
+  });
+  let html = `<div>
+  <div class="sticky bg-slate-50 z-10 px-4 py-3 space-y-2 border-b border-slate-100" style="top:0">
+    <div class="flex gap-2">
+      <div class="relative flex-1">
+        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
+        <input class="input pl-9 py-2.5" placeholder="Suchen..." value="${esc(itemFilter)}" oninput="itemFilter=this.value;render()">
+      </div>
+      <button onclick="openItemForm()" class="btn" style="background:#2563eb;color:white;padding:.6rem .9rem">
+        <span style="font-size:1.2rem;line-height:1">+</span>
+      </button>
+    </div>
+    <div class="flex gap-2 overflow-x-auto pb-1">
+      <button onclick="itemCatFilter=0;render()" class="chip flex-shrink-0" style="background:${!itemCatFilter?'#2563eb':'white'};color:${!itemCatFilter?'white':'#475569'};border-color:${!itemCatFilter?'#2563eb':'#e2e8f0'}">Alle</button>
+      ${S.categories.map(c=>`<button onclick="itemCatFilter=${c.id};render()" class="chip flex-shrink-0" style="background:${itemCatFilter===c.id?c.color:'white'};color:${itemCatFilter===c.id?'white':'#475569'};border-color:${itemCatFilter===c.id?c.color:'#e2e8f0'}">${esc(c.name)}</button>`).join('')}
+    </div>
+    <div class="text-xs text-slate-400">${items.length} von ${S.items.length} Gegenständen</div>
+  </div>
+  <div class="p-4 space-y-3">`;
+
+  if(!items.length) html+=`<div class="card p-10 text-center"><div style="font-size:3rem">📦</div><div class="text-slate-400 mt-2">Keine Gegenstände</div></div>`;
+
+  items.forEach(item=>{
+    const loc = S.locations.find(l=>l.id===item.location_id);
+    const wh = loc?S.warehouses.find(w=>w.id===loc.warehouse_id):null;
+    html+=`<div class="card overflow-hidden">
+      <div class="p-3.5 flex gap-3" onclick="openItemDetail(${item.id})">
+        <div class="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 text-2xl" style="background:${catColor(item.category_id)}20">${getCatEmoji(item.category_id)}</div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-start justify-between gap-2">
+            <div class="font-semibold text-slate-900 leading-tight">${esc(item.name)}</div>
+            <span class="badge flex-shrink-0" style="background:${condColor(item.condition)}20;color:${condColor(item.condition)}">${item.condition}</span>
+          </div>
+          <div class="text-xs text-slate-500 mt-0.5">${catName(item.category_id)}</div>
+          <div class="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5">
+            <span class="text-sm font-medium text-slate-700">${item.quantity}×</span>
+            ${wh?`<span class="text-xs text-slate-400">📍 ${esc(wh.name)}</span>`:''}
+            ${item.is_rentable&&item.daily_rate?`<span class="text-xs text-blue-600">💶 ${fmt(item.daily_rate)}/Tag</span>`:''}
+            ${!item.is_rentable?`<span class="text-xs text-slate-400">nicht verleihbar</span>`:''}
+          </div>
+        </div>
+        <span class="text-slate-300 self-center">›</span>
+      </div>
+      <div class="flex border-t border-slate-100">
+        <button onclick="openItemForm(${item.id})" class="flex-1 py-2.5 text-sm text-slate-600 flex items-center justify-center gap-1.5">✏️ Bearbeiten</button>
+        <div class="w-px bg-slate-100"></div>
+        <button onclick="deleteItem(${item.id})" class="flex-1 py-2.5 text-sm text-red-400 flex items-center justify-center gap-1.5">🗑 Löschen</button>
+      </div>
+    </div>`;
+  });
+  html+=`</div></div>`;
+  return html;
+}
+
+function getCatEmoji(id){
+  return ['⛺','🪑','⚡','🍳','📦'][S.categories.findIndex(c=>c.id===id)] || '📦';
+}
+
+function openItemDetail(id){
+  const item = S.items.find(i=>i.id===id); if(!item) return;
+  const rentals = S.rentals.filter(r=>r.item_id===id).slice(0,5);
+  let html = `<div class="space-y-4">
+    <div class="flex items-center gap-3">
+      <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl" style="background:${catColor(item.category_id)}20">${getCatEmoji(item.category_id)}</div>
+      <div><div class="font-bold text-lg text-slate-900">${esc(item.name)}</div><div class="text-sm text-slate-500">${catName(item.category_id)}</div></div>
+    </div>
+    ${item.description?`<div class="text-sm text-slate-600">${esc(item.description)}</div>`:''}
+    <div class="card p-4 grid grid-cols-2 gap-3">
+      <div><div class="text-xs text-slate-400">Menge</div><div class="font-semibold">${item.quantity}</div></div>
+      <div><div class="text-xs text-slate-400">Zustand</div><div class="font-semibold" style="color:${condColor(item.condition)}">${item.condition}</div></div>
+      ${item.purchase_price?`<div><div class="text-xs text-slate-400">Einkaufspreis</div><div class="font-semibold">${fmt(item.purchase_price)}</div></div>`:''}
+      <div><div class="text-xs text-slate-400">Verleihbar</div><div class="font-semibold" style="color:${item.is_rentable?'#10b981':'#94a3b8'}">${item.is_rentable?'Ja':'Nein'}</div></div>
+    </div>
+    ${item.is_rentable&&(item.daily_rate||item.weekend_rate)?`
+    <div class="card p-4 grid grid-cols-2 gap-3">
+      ${item.daily_rate?`<div class="rounded-xl p-3" style="background:#eff6ff"><div class="text-xs text-blue-600">Tagespreis</div><div class="font-bold text-blue-700 text-lg">${fmt(item.daily_rate)}</div></div>`:''}
+      ${item.weekend_rate?`<div class="rounded-xl p-3" style="background:#f5f3ff"><div class="text-xs" style="color:#7c3aed">Wochenende</div><div class="font-bold text-lg" style="color:#6d28d9">${fmt(item.weekend_rate)}</div></div>`:''}
+    </div>`:''}
+    <div class="card p-4"><div class="text-sm font-medium text-slate-700 mb-1">📍 Lagerort</div><div class="text-slate-900">${locName(item.location_id)}</div></div>
+    ${item.notes?`<div class="card p-4"><div class="text-sm font-medium text-slate-700 mb-1">📝 Notizen</div><div class="text-sm text-slate-600">${esc(item.notes)}</div></div>`:''}
+    ${rentals.length?`<div class="card p-4"><div class="text-sm font-medium text-slate-700 mb-3">📅 Letzte Verleihe</div><div class="space-y-2">
+      ${rentals.map(r=>`<div class="flex items-center justify-between text-sm"><div><div class="font-medium">${esc(r.borrower_name)}</div><div class="text-xs text-slate-400">${fmtDate(r.start_date)} – ${fmtDate(r.end_date)} · ${r.quantity}×</div></div><span class="badge" style="background:${statusBg(r.status)};color:${statusColor(r.status)}">${r.status}</span></div>`).join('')}
+    </div></div>`:''}
+    <div class="flex gap-3 pt-2">
+      <button onclick="closeModal();openItemForm(${item.id})" class="btn flex-1" style="background:#f1f5f9;color:#475569">✏️ Bearbeiten</button>
+      <button onclick="closeModal();openRentalForm(null,${item.id})" class="btn flex-1" style="background:#2563eb;color:white">+ Verleihen</button>
+    </div>
+  </div>`;
+  openModal(`${esc(item.name)}`, html);
+}
+
+function openItemForm(id=null){
+  const item = id ? S.items.find(i=>i.id===id) : null;
+  const locOpts = S.locations.map(l=>{
+    const w=S.warehouses.find(x=>x.id===l.warehouse_id);
+    return `<option value="${l.id}" ${item&&item.location_id===l.id?'selected':''}>${w?w.name+' › ':''} ${esc(l.name)}</option>`;
+  }).join('');
+  const conditions = ['neuwertig','sehr gut','gut','befriedigend','reparaturbedürftig'];
+  let html = `<form onsubmit="saveItem(event,${id||'null'})">
+    <div class="space-y-3">
+      <div><label class="text-sm font-medium text-slate-700 block mb-1">Name *</label><input class="input" name="name" required placeholder="z.B. Festzelt 6×12m" value="${esc(item?.name||'')}"></div>
+      <div><label class="text-sm font-medium text-slate-700 block mb-1">Beschreibung</label><textarea class="input" name="description" rows="2" placeholder="Details...">${esc(item?.description||'')}</textarea></div>
+      <div class="grid grid-cols-2 gap-3">
+        <div><label class="text-sm font-medium text-slate-700 block mb-1">Kategorie</label>
+          <select class="input" name="category_id"><option value="">– keine –</option>${S.categories.map(c=>`<option value="${c.id}" ${item&&item.category_id===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select></div>
+        <div><label class="text-sm font-medium text-slate-700 block mb-1">Menge</label><input class="input" type="number" min="1" name="quantity" value="${item?.quantity||1}"></div>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div><label class="text-sm font-medium text-slate-700 block mb-1">Zustand</label>
+          <select class="input" name="condition">${conditions.map(c=>`<option ${item&&item.condition===c?'selected':''}>${c}</option>`).join('')}</select></div>
+        <div><label class="text-sm font-medium text-slate-700 block mb-1">Einkaufspreis (€)</label><input class="input" type="number" step="0.01" name="purchase_price" value="${item?.purchase_price||''}"></div>
+      </div>
+      <div><label class="text-sm font-medium text-slate-700 block mb-1">Lagerplatz</label>
+        <select class="input" name="location_id"><option value="">– kein –</option>${locOpts}</select></div>
+      <div class="card p-3 space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-sm font-medium text-slate-700">Verleihbar</span>
+          <div class="toggle ${item?.is_rentable!==false?'on':''}" id="rentable-toggle" onclick="this.classList.toggle('on');document.getElementById('rental-fields').style.display=this.classList.contains('on')?'block':'none'"></div>
+        </div>
+        <div id="rental-fields" style="display:${item?.is_rentable!==false?'block':'none'}">
+          <div class="grid grid-cols-2 gap-3 mt-2">
+            <div><label class="text-xs text-slate-500 block mb-1">Tagespreis (€)</label><input class="input" type="number" step="0.01" name="daily_rate" value="${item?.daily_rate||''}"></div>
+            <div><label class="text-xs text-slate-500 block mb-1">Wochenende (€)</label><input class="input" type="number" step="0.01" name="weekend_rate" value="${item?.weekend_rate||''}"></div>
+          </div>
+        </div>
+      </div>
+      <div><label class="text-sm font-medium text-slate-700 block mb-1">Notizen</label><textarea class="input" name="notes" rows="2">${esc(item?.notes||'')}</textarea></div>
+      <div class="flex gap-3 pt-1">
+        <button type="button" onclick="closeModal()" class="btn flex-1" style="background:#f1f5f9;color:#475569">Abbrechen</button>
+        <button type="submit" class="btn flex-1" style="background:#2563eb;color:white">Speichern</button>
+      </div>
+    </div>
+  </form>`;
+  openModal(item?'Bearbeiten':'Neuer Gegenstand', html);
+}
+
+function saveItem(e, id){
+  e.preventDefault();
+  const f = e.target;
+  const isRentable = document.getElementById('rentable-toggle').classList.contains('on');
+  const data = {
+    name: f.name.value.trim(), description: f.description.value.trim(),
+    category_id: parseInt(f.category_id.value)||null, quantity: parseInt(f.quantity.value)||1,
+    condition: f.condition.value, purchase_price: parseFloat(f.purchase_price.value)||null,
+    is_rentable: isRentable, daily_rate: isRentable?parseFloat(f.daily_rate.value)||null:null,
+    weekend_rate: isRentable?parseFloat(f.weekend_rate.value)||null:null,
+    location_id: parseInt(f.location_id.value)||null, notes: f.notes.value.trim(),
+  };
+  if(!data.name){ toast('Name ist Pflichtfeld','error'); return; }
+  if(id){ Object.assign(S.items.find(i=>i.id===id), data); toast('Gegenstand gespeichert'); }
+  else { S.items.push({id:uid(),...data}); toast('Gegenstand angelegt'); }
+  save(); closeModal(); render();
+}
+
+function deleteItem(id){
+  const item = S.items.find(i=>i.id===id); if(!item) return;
+  const active = S.rentals.filter(r=>r.item_id===id&&!['zurückgegeben','storniert'].includes(r.status));
+  if(active.length){ toast('Gegenstand hat aktive Verleihe – zuerst abschließen!','error'); return; }
+  confirm_(`"${item.name}" wirklich löschen?`, ()=>{
+    S.items = S.items.filter(i=>i.id!==id);
+    S.rentals = S.rentals.filter(r=>r.item_id!==id);
+    save(); toast('Gelöscht'); render();
+  });
+}
+
+// ─── RENTALS PAGE ────────────────────────────────────────────────────────────
+function renderRentals(){
+  const statuses = ['alle','reserviert','ausgeliehen','zurückgegeben','storniert'];
+  const rentals = rentalFilter==='alle' ? S.rentals : S.rentals.filter(r=>r.status===rentalFilter);
+  let html = `<div>
+    <div class="sticky bg-slate-50 z-10 px-4 py-3 border-b border-slate-100" style="top:0">
+      <div class="flex gap-2 overflow-x-auto pb-1">
+        ${statuses.map(s=>`<button onclick="rentalFilter='${s}';render()" class="chip flex-shrink-0" style="background:${rentalFilter===s?'#2563eb':'white'};color:${rentalFilter===s?'white':'#475569'};border-color:${rentalFilter===s?'#2563eb':'#e2e8f0'}">${s==='alle'?`Alle (${S.rentals.length})`:s}</button>`).join('')}
+      </div>
+    </div>
+    <div class="p-4 space-y-3">
+      <button onclick="openRentalForm()" class="btn w-full" style="background:#2563eb;color:white">+ Neuer Verleihvorgang</button>`;
+
+  if(!rentals.length) html+=`<div class="card p-10 text-center"><div style="font-size:3rem">📅</div><div class="text-slate-400 mt-2">Keine Einträge</div></div>`;
+
+  rentals.forEach(r=>{
+    const item = S.items.find(i=>i.id===r.item_id);
+    html+=`<div class="card overflow-hidden">
+      <div class="p-4" onclick="toggleRentalDetail(${r.id})">
+        <div class="flex items-start justify-between gap-3">
+          <div class="flex-1 min-w-0">
+            <div class="font-semibold text-slate-900 truncate">${esc(item?item.name:'Unbekannt')}</div>
+            <div class="text-sm text-slate-600 flex items-center gap-1 mt-0.5">👤 ${esc(r.borrower_name)} · ${r.quantity}×</div>
+            <div class="text-xs text-slate-400 mt-1">📅 ${fmtDate(r.start_date)} – ${fmtDate(r.end_date)}</div>
+          </div>
+          <div class="flex-shrink-0 text-right">
+            <span class="badge" style="background:${statusBg(r.status)};color:${statusColor(r.status)}">${r.status}</span>
+            ${r.total_price?`<div class="text-sm font-semibold text-slate-700 mt-1">${fmt(r.total_price)}</div>`:''}
+            <div class="text-slate-300 text-sm mt-1" id="rental-chevron-${r.id}">▼</div>
+          </div>
+        </div>
+      </div>
+      <div id="rental-detail-${r.id}" class="hidden border-t border-slate-100 p-4 space-y-2">
+        ${r.borrower_phone?`<a href="tel:${esc(r.borrower_phone)}" class="flex items-center gap-2 text-sm text-blue-600">📞 ${esc(r.borrower_phone)}</a>`:''}
+        ${r.borrower_email?`<a href="mailto:${esc(r.borrower_email)}" class="flex items-center gap-2 text-sm text-blue-600">✉️ ${esc(r.borrower_email)}</a>`:''}
+        ${r.borrower_address?`<div class="flex items-start gap-2 text-sm text-slate-600">📍 ${esc(r.borrower_address)}</div>`:''}
+        ${r.notes?`<div class="text-sm text-slate-500 italic">"${esc(r.notes)}"</div>`:''}
+        <div class="grid grid-cols-2 gap-2 pt-1">
+          ${r.status==='reserviert'?`<button onclick="updateRentalStatus(${r.id},'ausgeliehen')" class="btn text-sm" style="background:#dbeafe;color:#1d4ed8">→ Ausgeliehen</button>`:''}
+          ${r.status==='ausgeliehen'?`<button onclick="updateRentalStatus(${r.id},'zurückgegeben')" class="btn text-sm" style="background:#dcfce7;color:#15803d">✓ Zurück</button>`:''}
+          <button onclick="openRentalForm(${r.id})" class="btn text-sm" style="background:#f1f5f9;color:#475569">✏️ Bearbeiten</button>
+          <button onclick="deleteRental(${r.id})" class="btn text-sm" style="background:#fee2e2;color:#dc2626">🗑 Löschen</button>
+        </div>
+      </div>
+    </div>`;
+  });
+  html+=`</div></div>`;
+  return html;
+}
+
+function toggleRentalDetail(id){
+  const el = document.getElementById(`rental-detail-${id}`);
+  const ch = document.getElementById(`rental-chevron-${id}`);
+  if(el){ el.classList.toggle('hidden'); if(ch) ch.textContent = el.classList.contains('hidden')?'▼':'▲'; }
+}
+
+function updateRentalStatus(id, status){
+  const r = S.rentals.find(x=>x.id===id); if(!r) return;
+  r.status = status; save(); toast(`Status: ${status}`); render();
+}
+
+function openRentalForm(id=null, prefillItemId=null){
+  const r = id ? S.rentals.find(x=>x.id===id) : null;
+  const rentableItems = S.items.filter(i=>i.is_rentable);
+  const today = new Date().toISOString().split('T')[0];
+  let html = `<form onsubmit="saveRental(event,${id||'null'})">
+    <div class="space-y-3" id="rental-form-fields">
+      <div><label class="text-sm font-medium text-slate-700 block mb-1">Gegenstand *</label>
+        <select class="input" name="item_id" id="rf-item" onchange="calcRentalPrice()" required>
+          <option value="">– Gegenstand wählen –</option>
+          ${rentableItems.map(i=>`<option value="${i.id}" ${(r&&r.item_id===i.id)||(prefillItemId===i.id)?'selected':''}>${esc(i.name)} (Bestand: ${i.quantity})</option>`).join('')}
+        </select></div>
+      <div class="grid grid-cols-2 gap-3">
+        <div><label class="text-sm font-medium text-slate-700 block mb-1">Von *</label><input class="input" type="date" name="start_date" id="rf-start" required value="${r?.start_date||today}" onchange="calcRentalPrice();checkRentalAvail()"></div>
+        <div><label class="text-sm font-medium text-slate-700 block mb-1">Bis *</label><input class="input" type="date" name="end_date" id="rf-end" required value="${r?.end_date||today}" onchange="calcRentalPrice();checkRentalAvail()"></div>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div><label class="text-sm font-medium text-slate-700 block mb-1">Menge</label><input class="input" type="number" min="1" name="quantity" id="rf-qty" value="${r?.quantity||1}" onchange="calcRentalPrice();checkRentalAvail()"></div>
+        <div><label class="text-sm font-medium text-slate-700 block mb-1">Preismodell</label>
+          <select class="input" name="price_type" id="rf-price-type" onchange="calcRentalPrice()">
+            <option value="daily" ${(!r||r.price_type==='daily')?'selected':''}>Tagespreis</option>
+            <option value="weekend" ${r?.price_type==='weekend'?'selected':''}>Wochenende</option>
+            <option value="custom" ${r?.price_type==='custom'?'selected':''}>Individuell</option>
+            <option value="free" ${r?.price_type==='free'?'selected':''}>Kostenlos</option>
+          </select></div>
+      </div>
+      <div id="rf-avail" class="hidden rounded-xl p-3 text-sm"></div>
+      <div id="rf-price-display" class="hidden rounded-xl p-3 flex items-center justify-between" style="background:#eff6ff">
+        <span class="text-sm text-blue-700">Berechneter Preis</span>
+        <span id="rf-price-val" class="font-bold text-blue-700 text-lg"></span>
+      </div>
+      <div id="rf-custom-price" class="hidden">
+        <label class="text-sm font-medium text-slate-700 block mb-1">Gesamtpreis (€)</label>
+        <input class="input" type="number" step="0.01" name="total_price" value="${r?.total_price||''}">
+      </div>
+      ${r?`<div><label class="text-sm font-medium text-slate-700 block mb-1">Status</label>
+        <select class="input" name="status">
+          ${['reserviert','ausgeliehen','zurückgegeben','storniert'].map(s=>`<option ${r.status===s?'selected':''}>${s}</option>`).join('')}
+        </select></div>`:''}
+      <div class="border-t border-slate-100 pt-3"><div class="text-sm font-medium text-slate-700 mb-2">Kontakt Entleiher</div>
+        <div class="space-y-2">
+          <input class="input" name="borrower_name" required placeholder="Name *" value="${esc(r?.borrower_name||'')}">
+          <input class="input" type="tel" name="borrower_phone" placeholder="Telefon" value="${esc(r?.borrower_phone||'')}">
+          <input class="input" type="email" name="borrower_email" placeholder="E-Mail" value="${esc(r?.borrower_email||'')}">
+          <textarea class="input" name="borrower_address" rows="2" placeholder="Adresse">${esc(r?.borrower_address||'')}</textarea>
+        </div></div>
+      <textarea class="input" name="notes" rows="2" placeholder="Notizen...">${esc(r?.notes||'')}</textarea>
+      <div class="flex gap-3 pt-1">
+        <button type="button" onclick="closeModal()" class="btn flex-1" style="background:#f1f5f9;color:#475569">Abbrechen</button>
+        <button type="submit" class="btn flex-1" style="background:#2563eb;color:white">Speichern</button>
+      </div>
+    </div>
+  </form>`;
+  openModal(r?'Verleih bearbeiten':'Neuer Verleihvorgang', html);
+  setTimeout(()=>{ calcRentalPrice(); checkRentalAvail(); if(prefillItemId){ const sel=document.getElementById('rf-item'); if(sel) sel.value=prefillItemId; calcRentalPrice(); checkRentalAvail(); } },50);
+}
+
+let _rentalEditId = null;
+function saveRental(e, id){
+  e.preventDefault();
+  const f = e.target;
+  const itemId = parseInt(f.item_id.value); if(!itemId){toast('Gegenstand wählen','error');return;}
+  const start = f.start_date.value, end = f.end_date.value, qty = parseInt(f.quantity.value)||1;
+  if(end<start){toast('Enddatum vor Startdatum','error');return;}
+  const av = checkAvail(itemId,start,end,qty,id);
+  if(!av.ok){toast(`Nicht verfügbar! Nur ${av.avail} von ${av.total} verfügbar`,'error');return;}
+  const priceType = f.price_type.value;
+  let price = null;
+  if(priceType==='custom') price = parseFloat(f.total_price?.value)||null;
+  else if(priceType!=='free'){
+    const item = S.items.find(i=>i.id===itemId);
+    const days = daysBetween(start,end);
+    if(priceType==='weekend'&&item.weekend_rate) price = item.weekend_rate*qty;
+    else if(item.daily_rate) price = item.daily_rate*days*qty;
+  }
+  const data = {
+    item_id:itemId, borrower_name:f.borrower_name.value.trim(),
+    borrower_phone:f.borrower_phone.value.trim(), borrower_email:f.borrower_email.value.trim(),
+    borrower_address:f.borrower_address.value.trim(), start_date:start, end_date:end,
+    quantity:qty, status:f.status?.value||'reserviert', price_type:priceType, total_price:price, notes:f.notes.value.trim()
+  };
+  if(!data.borrower_name){toast('Name ist Pflichtfeld','error');return;}
+  if(id){Object.assign(S.rentals.find(r=>r.id===id),data);toast('Verleih gespeichert');}
+  else{S.rentals.push({id:uid(),...data});toast('Verleih angelegt');}
+  save();closeModal();render();
+}
+
+function calcRentalPrice(){
+  const item_sel=document.getElementById('rf-item'), start_in=document.getElementById('rf-start'), end_in=document.getElementById('rf-end'), qty_in=document.getElementById('rf-qty'), pt_sel=document.getElementById('rf-price-type');
+  const pd=document.getElementById('rf-price-display'), cp=document.getElementById('rf-custom-price');
+  if(!item_sel||!start_in||!end_in||!qty_in||!pt_sel) return;
+  const itemId=parseInt(item_sel.value), start=start_in.value, end=end_in.value, qty=parseInt(qty_in.value)||1, pt=pt_sel.value;
+  if(pt==='custom'){pd.classList.add('hidden');cp.classList.remove('hidden');return;}
+  cp.classList.add('hidden');
+  if(!itemId||!start||!end||end<start){pd.classList.add('hidden');return;}
+  const item=S.items.find(i=>i.id===itemId); if(!item) return;
+  const days=daysBetween(start,end);
+  let price=null;
+  if(pt==='free') price=0;
+  else if(pt==='weekend'&&item.weekend_rate) price=item.weekend_rate*qty;
+  else if(item.daily_rate) price=item.daily_rate*days*qty;
+  if(price!==null){pd.classList.remove('hidden');document.getElementById('rf-price-val').textContent=fmt(price);}
+  else pd.classList.add('hidden');
+}
+
+function checkRentalAvail(){
+  const item_sel=document.getElementById('rf-item'), start_in=document.getElementById('rf-start'), end_in=document.getElementById('rf-end'), qty_in=document.getElementById('rf-qty'), el=document.getElementById('rf-avail');
+  if(!item_sel||!start_in||!end_in||!el) return;
+  const itemId=parseInt(item_sel.value), start=start_in.value, end=end_in.value, qty=parseInt(qty_in?.value)||1;
+  if(!itemId||!start||!end){el.classList.add('hidden');return;}
+  const av=checkAvail(itemId,start,end,qty);
+  el.classList.remove('hidden');
+  el.style.background=av.ok?'#f0fdf4':'#fef2f2';
+  el.style.color=av.ok?'#15803d':'#dc2626';
+  el.textContent=av.ok?`✓ Verfügbar (${av.avail} von ${av.total})`:`✗ Nicht genug! Nur ${av.avail} von ${av.total} verfügbar`;
+}
+
+function deleteRental(id){
+  const r=S.rentals.find(x=>x.id===id); if(!r) return;
+  confirm_(`Verleihvorgang für "${itemName(r.item_id)}" an ${r.borrower_name} löschen?`,()=>{
+    S.rentals=S.rentals.filter(x=>x.id!==id); save(); toast('Verleih gelöscht'); render();
+  });
+}
+
+// ─── WAREHOUSES PAGE ─────────────────────────────────────────────────────────
+function renderWarehouses(){
+  let html=`<div class="p-4 space-y-4">
+    <button onclick="openWhForm()" class="btn w-full" style="background:#2563eb;color:white">+ Neue Lagerhalle</button>`;
+  S.warehouses.forEach(wh=>{
+    const locs=S.locations.filter(l=>l.warehouse_id===wh.id);
+    html+=`<div class="card overflow-hidden">
+      <div class="p-4 flex items-start gap-3">
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-xl" style="background:#dbeafe">🏭</div>
+        <div class="flex-1"><div class="font-semibold text-slate-900">${esc(wh.name)}</div>${wh.address?`<div class="text-xs text-slate-500 mt-0.5">📍 ${esc(wh.address)}</div>`:''}<div class="text-xs text-slate-400 mt-0.5">${locs.length} Lagerplätze</div></div>
+        <div class="flex gap-1">
+          <button onclick="openWhForm(${wh.id})" class="p-2 rounded-lg text-slate-400" style="background:#f8fafc">✏️</button>
+          <button onclick="deleteWh(${wh.id})" class="p-2 rounded-lg text-red-400" style="background:#fff5f5">🗑</button>
+        </div>
+      </div>
+      <div class="border-t border-slate-100">
+        ${locs.map(loc=>{
+          const cnt=S.items.filter(i=>i.location_id===loc.id).length;
+          return `<div class="flex items-center gap-3 px-4 py-3 border-b border-slate-50">
+            <span class="text-slate-400">📍</span>
+            <div class="flex-1"><div class="text-sm font-medium text-slate-800">${esc(loc.name)}</div>${cnt?`<div class="text-xs text-blue-600">${cnt} Gegenstand${cnt!==1?'e':''}</div>`:''}</div>
+            <div class="flex gap-1">
+              <button onclick="openLocForm(${wh.id},${loc.id})" class="p-1.5 rounded-lg text-slate-400 text-sm" style="background:#f8fafc">✏️</button>
+              <button onclick="deleteLoc(${loc.id})" class="p-1.5 rounded-lg text-red-400 text-sm" style="background:#fff5f5">🗑</button>
+            </div>
+          </div>`;
+        }).join('')}
+        <button onclick="openLocForm(${wh.id})" class="w-full py-3 px-4 text-sm text-blue-600 font-medium flex items-center gap-2">+ Lagerplatz hinzufügen</button>
+      </div>
+    </div>`;
+  });
+  html+=`</div>`;
+  return html;
+}
+
+function openWhForm(id=null){
+  const wh=id?S.warehouses.find(x=>x.id===id):null;
+  openModal(wh?'Lagerhalle bearbeiten':'Neue Lagerhalle',
+    `<form onsubmit="saveWh(event,${id||'null'})"><div class="space-y-3">
+      <div><label class="text-sm font-medium text-slate-700 block mb-1">Name *</label><input class="input" name="name" required value="${esc(wh?.name||'')}" placeholder="z.B. Lagerhalle 1"></div>
+      <div><label class="text-sm font-medium text-slate-700 block mb-1">Adresse</label><input class="input" name="address" value="${esc(wh?.address||'')}" placeholder="Musterstraße 1, 12345 Stadt"></div>
+      <div class="flex gap-3 pt-1">
+        <button type="button" onclick="closeModal()" class="btn flex-1" style="background:#f1f5f9;color:#475569">Abbrechen</button>
+        <button type="submit" class="btn flex-1" style="background:#2563eb;color:white">Speichern</button>
+      </div>
+    </div></form>`);
+}
+function saveWh(e,id){
+  e.preventDefault();const f=e.target;
+  const data={name:f.name.value.trim(),address:f.address.value.trim()};
+  if(!data.name){toast('Name Pflichtfeld','error');return;}
+  if(id){Object.assign(S.warehouses.find(x=>x.id===id),data);toast('Lagerhalle gespeichert');}
+  else{S.warehouses.push({id:uid(),...data});toast('Lagerhalle angelegt');}
+  save();closeModal();render();
+}
+function deleteWh(id){
+  const wh=S.warehouses.find(x=>x.id===id);
+  const haslocs=S.locations.some(l=>l.warehouse_id===id);
+  if(haslocs){toast('Zuerst alle Lagerplätze löschen','error');return;}
+  confirm_(`"${wh.name}" löschen?`,()=>{S.warehouses=S.warehouses.filter(x=>x.id!==id);save();toast('Gelöscht');render();});
+}
+function openLocForm(warehouseId,locId=null){
+  const loc=locId?S.locations.find(x=>x.id===locId):null;
+  openModal(loc?'Lagerplatz bearbeiten':'Neuer Lagerplatz',
+    `<form onsubmit="saveLoc(event,${warehouseId},${locId||'null'})"><div class="space-y-3">
+      <div><label class="text-sm font-medium text-slate-700 block mb-1">Name *</label><input class="input" name="name" required value="${esc(loc?.name||'')}" placeholder="z.B. Regal A"></div>
+      <div class="flex gap-3 pt-1">
+        <button type="button" onclick="closeModal()" class="btn flex-1" style="background:#f1f5f9;color:#475569">Abbrechen</button>
+        <button type="submit" class="btn flex-1" style="background:#2563eb;color:white">Speichern</button>
+      </div>
+    </div></form>`);
+}
+function saveLoc(e,whId,locId){
+  e.preventDefault();const f=e.target;
+  const name=f.name.value.trim();if(!name){toast('Name Pflichtfeld','error');return;}
+  if(locId){S.locations.find(x=>x.id===locId).name=name;toast('Lagerplatz gespeichert');}
+  else{S.locations.push({id:uid(),warehouse_id:whId,name});toast('Lagerplatz angelegt');}
+  save();closeModal();render();
+}
+function deleteLoc(id){
+  const inUse=S.items.some(i=>i.location_id===id);
+  if(inUse){toast('Lagerplatz noch in Verwendung','error');return;}
+  confirm_('Lagerplatz löschen?',()=>{S.locations=S.locations.filter(x=>x.id!==id);save();toast('Gelöscht');render();});
+}
+
+// ─── MORE PAGE ───────────────────────────────────────────────────────────────
+function renderMore(){
+  let html=`<div class="p-4 space-y-5">
+    <div><div class="font-semibold text-slate-800 mb-3">Kategorien</div>
+      <div class="card overflow-hidden">
+        ${S.categories.map(c=>`<div class="flex items-center gap-3 p-3.5 border-b border-slate-50 last:border-0">
+          <div class="w-8 h-8 rounded-full flex-shrink-0" style="background:${c.color}"></div>
+          <div class="flex-1 font-medium text-slate-800">${esc(c.name)}</div>
+          <div class="flex gap-1">
+            <button onclick="openCatForm(${c.id})" class="p-1.5 rounded text-slate-400 text-sm">✏️</button>
+            <button onclick="deleteCat(${c.id})" class="p-1.5 rounded text-red-400 text-sm">🗑</button>
+          </div>
+        </div>`).join('')}
+        <button onclick="openCatForm()" class="w-full py-3 px-4 text-sm text-blue-600 font-medium flex items-center gap-2">+ Kategorie hinzufügen</button>
+      </div>
+    </div>
+    <div class="card p-4 space-y-3">
+      <div class="font-semibold text-slate-800">Demo-Daten</div>
+      <p class="text-sm text-slate-500">Alle Daten werden in diesem Browser gespeichert (localStorage).</p>
+      <button onclick="resetDemo()" class="btn w-full" style="background:#fee2e2;color:#dc2626">🔄 Demo-Daten zurücksetzen</button>
+    </div>
+    <div class="card p-4 text-sm text-slate-500 space-y-1">
+      <div class="font-semibold text-slate-700 mb-2">ℹ️ Info</div>
+      <div>📦 Vereinsinventar Demo</div>
+      <div>Mobile-first App für Bürgervereine</div>
+      <div class="text-xs text-slate-400 mt-2">Dies ist eine Demo ohne Serverbindung. Alle Daten bleiben auf diesem Gerät.</div>
+    </div>
+  </div>`;
+  return html;
+}
+
+function openCatForm(id=null){
+  const cat=id?S.categories.find(x=>x.id===id):null;
+  const colors=['#ef4444','#f97316','#f59e0b','#10b981','#3b82f6','#6366f1','#8b5cf6','#ec4899','#6b7280'];
+  openModal(cat?'Kategorie bearbeiten':'Neue Kategorie',
+    `<form onsubmit="saveCat(event,${id||'null'})"><div class="space-y-3">
+      <div><label class="text-sm font-medium text-slate-700 block mb-1">Name *</label><input class="input" name="name" required value="${esc(cat?.name||'')}" placeholder="z.B. Werkzeug"></div>
+      <div><label class="text-sm font-medium text-slate-700 block mb-2">Farbe</label>
+        <div class="flex flex-wrap gap-2">${colors.map(c=>`<button type="button" onclick="document.getElementById('cat-color-input').value='${c}';document.querySelectorAll('.color-dot').forEach(d=>{d.style.outline='none'});this.style.outline='3px solid #1e293b'" class="color-dot w-8 h-8 rounded-full" style="background:${c};outline:${cat?.color===c?'3px solid #1e293b':'none'}"></button>`).join('')}
+          <input type="hidden" name="color" id="cat-color-input" value="${cat?.color||'#6366f1'}">
+        </div>
+      </div>
+      <div class="flex gap-3 pt-1">
+        <button type="button" onclick="closeModal()" class="btn flex-1" style="background:#f1f5f9;color:#475569">Abbrechen</button>
+        <button type="submit" class="btn flex-1" style="background:#2563eb;color:white">Speichern</button>
+      </div>
+    </div></form>`);
+}
+function saveCat(e,id){
+  e.preventDefault();const f=e.target;
+  const data={name:f.name.value.trim(),color:f.color.value||'#6366f1'};
+  if(!data.name){toast('Name Pflichtfeld','error');return;}
+  if(id){Object.assign(S.categories.find(x=>x.id===id),data);toast('Kategorie gespeichert');}
+  else{S.categories.push({id:uid(),...data});toast('Kategorie angelegt');}
+  save();closeModal();render();
+}
+function deleteCat(id){
+  const inUse=S.items.some(i=>i.category_id===id);
+  if(inUse){toast('Kategorie noch in Verwendung','error');return;}
+  confirm_('Kategorie löschen?',()=>{S.categories=S.categories.filter(x=>x.id!==id);save();toast('Gelöscht');render();});
+}
+function resetDemo(){
+  confirm_('Alle Daten auf Demo-Zustand zurücksetzen?',()=>{
+    S=JSON.parse(JSON.stringify(DEMO));nextId=getNextId();save();toast('Demo-Daten zurückgesetzt');render();
+  });
+}
+
+// ─── MODAL SYSTEM ────────────────────────────────────────────────────────────
+function openModal(title, body){
+  document.getElementById('modal-title').textContent=title;
+  document.getElementById('modal-body').innerHTML=body;
+  document.getElementById('overlay').classList.remove('hidden');
+  const m=document.getElementById('modal');
+  m.classList.remove('hidden');
+  requestAnimationFrame(()=>m.classList.remove('sheet'));
+  setTimeout(()=>m.style.transform='translateY(0)',10);
+  m.style.transform='translateY(100%)';
+  setTimeout(()=>m.style.transform='',10);
+}
+function closeModal(){
+  const m=document.getElementById('modal');
+  m.style.transform='translateY(100%)';
+  setTimeout(()=>{
+    m.classList.add('hidden');
+    m.style.transform='';
+    document.getElementById('overlay').classList.add('hidden');
+  },300);
+}
+
+// ─── CONFIRM DIALOG ──────────────────────────────────────────────────────────
+function confirm_(msg, cb){
+  document.getElementById('confirm-title').textContent='Bestätigung';
+  document.getElementById('confirm-msg').textContent=msg;
+  document.getElementById('confirm-overlay').classList.remove('hidden');
+  document.getElementById('confirm-ok').onclick=()=>{
+    document.getElementById('confirm-overlay').classList.add('hidden');cb();
+  };
+}
+
+// ─── TOAST ───────────────────────────────────────────────────────────────────
+function toast(msg,type='success'){
+  const c=document.getElementById('toast-container');
+  const el=document.createElement('div');
+  el.className='toast rounded-xl px-4 py-3 text-sm font-medium shadow-lg flex items-center gap-2';
+  el.style.background=type==='error'?'#ef4444':type==='warning'?'#f59e0b':'#10b981';
+  el.style.color='white';
+  el.innerHTML=`<span>${type==='error'?'✕':type==='warning'?'⚠':'✓'}</span><span>${esc(msg)}</span>`;
+  c.appendChild(el);
+  setTimeout(()=>el.remove(),3200);
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+navigate('dashboard');
+</script>
+</body>
+</html>
