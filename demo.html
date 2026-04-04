@@ -296,15 +296,24 @@ const DEMO={
     {id:6,name:'Kunststoffbecher 0,4L',desc:'Transparente Wiederverwendungsbecher',cid:4,qty:250,cond:'gut',price:0.8,rent:true,day:15,wknd:20,lid:2,notes:'Preis pauschal'},
   ],
   rentals:[
-    {id:1,iid:1,name:'SVG Musterclub',phone:'0151 12345678',email:'kontakt@svg-musterclub.de',addr:'Vereinsstraße 10, 12345 Musterstadt',s:'2026-03-28',e:'2026-04-01',qty:1,status:'ausgeliehen',pt:'daily',total:250,notes:'Aufbau Do, Abbau Mi'},
-    {id:2,iid:2,name:'Familie Müller',phone:'0170 9876543',email:'',addr:'Gartenweg 3, 12345 Musterstadt',s:'2026-04-05',e:'2026-04-06',qty:2,status:'reserviert',pt:'weekend',total:30,notes:'Geburtstagsfeier im Garten'},
-    {id:3,iid:4,name:'Brauerei Hopfen GmbH',phone:'089 445566',email:'events@brauerei-hopfen.de',addr:'Brauereiweg 1, 80333 München',s:'2026-04-10',e:'2026-04-12',qty:2,status:'reserviert',pt:'daily',total:30,notes:''},
-    {id:4,iid:3,name:'Schulverein GS Muster',phone:'',email:'sv@gs-muster.de',addr:'Schulstraße 1, 12345 Musterstadt',s:'2026-03-20',e:'2026-03-21',qty:1,status:'zurückgegeben',pt:'weekend',total:30,notes:'Frühlingsfest'},
+    {id:1,lines:[{iid:1,qty:1},{iid:2,qty:2}],name:'SVG Musterclub',phone:'0151 12345678',email:'kontakt@svg-musterclub.de',addr:'Vereinsstraße 10, 12345 Musterstadt',s:'2026-03-28',e:'2026-04-01',status:'ausgeliehen',pt:'daily',total:330,notes:'Aufbau Do, Abbau Mi'},
+    {id:2,lines:[{iid:2,qty:2}],name:'Familie Müller',phone:'0170 9876543',email:'',addr:'Gartenweg 3, 12345 Musterstadt',s:'2026-04-05',e:'2026-04-06',status:'reserviert',pt:'weekend',total:30,notes:'Geburtstagsfeier im Garten'},
+    {id:3,lines:[{iid:4,qty:2}],name:'Brauerei Hopfen GmbH',phone:'089 445566',email:'events@brauerei-hopfen.de',addr:'Brauereiweg 1, 80333 München',s:'2026-04-10',e:'2026-04-12',status:'reserviert',pt:'daily',total:30,notes:''},
+    {id:4,lines:[{iid:3,qty:1}],name:'Schulverein GS Muster',phone:'',email:'sv@gs-muster.de',addr:'Schulstraße 1, 12345 Musterstadt',s:'2026-03-20',e:'2026-03-21',status:'zurückgegeben',pt:'weekend',total:30,notes:'Frühlingsfest'},
   ]
 };
 
 // ── STATE ────────────────────────────────────────────────────────────────────
-let D = (() => { try { const r=JSON.parse(localStorage.getItem('vi2')); return r||JSON.parse(JSON.stringify(DEMO)); } catch(e){ return JSON.parse(JSON.stringify(DEMO)); }})();
+let D = (() => {
+  try { const r=JSON.parse(localStorage.getItem('vi2')); if(r){migrateRentals(r);return r;} }catch(e){}
+  const d=JSON.parse(JSON.stringify(DEMO));migrateRentals(d);return d;
+})();
+function migrateRentals(d){
+  // Convert old {iid,qty} format to {lines:[{iid,qty}]}
+  (d.rentals||[]).forEach(r=>{
+    if(!r.lines&&r.iid){r.lines=[{iid:r.iid,qty:r.qty||1}];delete r.iid;delete r.qty;}
+  });
+}
 let curTab='dashboard', itemSearch='', itemCat=0, rentalSeg='alle', _nid=0;
 function nid(){ if(!_nid){ const all=[...D.items,...D.categories,...D.warehouses,...D.locations,...D.rentals]; _nid=all.length?Math.max(...all.map(x=>x.id))+1:100; } return _nid++; }
 function save(){ try{ localStorage.setItem('vi2',JSON.stringify(D)); }catch(e){} }
@@ -324,9 +333,13 @@ const condCol=c=>({neuwertig:'#16A34A','sehr gut':'#16A34A',gut:'#2563EB',befrie
 const condBg=c=>({neuwertig:'#DCFCE7','sehr gut':'#DCFCE7',gut:'#DBEAFE',befriedigend:'#FEF3C7','reparaturbedürftig':'#FEE2E2'}[c]||'#F1F5F9');
 const statusCol=s=>({reserviert:'#D97706',ausgeliehen:'#2563EB',zurückgegeben:'#16A34A',storniert:'#94A3B8'}[s]||'#94A3B8');
 const statusBg=s=>({reserviert:'#FEF3C7',ausgeliehen:'#DBEAFE',zurückgegeben:'#DCFCE7',storniert:'#F1F5F9'}[s]||'#F1F5F9');
+const rLines=r=>r.lines||(r.iid?[{iid:r.iid,qty:r.qty||1}]:[]);
+const rItemNames=r=>{const ls=rLines(r);if(!ls.length)return'–';if(ls.length===1){const i=item(ls[0].iid);return i?i.name:'Unbekannt';}return ls.map(l=>{const i=item(l.iid);return i?i.name:'?';}).join(', ');};
+const rItemSummary=r=>{const ls=rLines(r);if(!ls.length)return'–';if(ls.length===1){const i=item(ls[0].iid);return`${i?i.name:'Unbekannt'} · ${ls[0].qty}×`;}return`${ls.length} Gegenstände`;};
 function avail(iid,s,e_,qty,excId=null){
   const itm=item(iid);if(!itm)return{ok:false,n:0,total:0};
-  const used=D.rentals.filter(r=>r.iid===iid&&r.id!==excId&&!['zurückgegeben','storniert'].includes(r.status)&&r.s<=e_&&r.e>=s).reduce((a,r)=>a+r.qty,0);
+  const used=D.rentals.filter(r=>r.id!==excId&&!['zurückgegeben','storniert'].includes(r.status)&&r.s<=e_&&r.e>=s)
+    .reduce((a,r)=>{const l=(rLines(r)).find(x=>x.iid===iid);return a+(l?l.qty:0);},0);
   return{ok:(itm.qty-used)>=qty,n:itm.qty-used,total:itm.qty};
 }
 
@@ -395,12 +408,11 @@ function renderDash(){
   if(active.length){
     h+=`<div class="sec-hdr">🔴 Aktuell ausgeliehen</div><div style="padding:0 16px" class="fadeUp"><div class="igroup shadow">`;
     active.forEach((r,i)=>{
-      const itm=item(r.iid);
       h+=`<div class="list-row" style="${i<active.length-1?'':'border:none'}" onclick="go('rentals')">
         <div style="width:10px;height:40px;border-radius:5px;background:${statusCol(r.status)};flex-shrink:0"></div>
         <div style="flex:1;min-width:0">
-          <div style="font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e(itm?itm.name:'?')}</div>
-          <div style="font-size:13px;color:var(--t2);margin-top:1px">${e(r.name)} · ${r.qty}×</div>
+          <div style="font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e(rItemNames(r))}</div>
+          <div style="font-size:13px;color:var(--t2);margin-top:1px">${e(r.name)}</div>
         </div>
         <div style="text-align:right;flex-shrink:0">
           <span class="badge" style="background:${statusBg(r.status)};color:${statusCol(r.status)}">${r.status}</span>
@@ -413,12 +425,11 @@ function renderDash(){
   if(res.length){
     h+=`<div class="sec-hdr">🟡 Bevorstehende Reservierungen</div><div style="padding:0 16px" class="fadeUp"><div class="igroup shadow">`;
     res.forEach((r,i)=>{
-      const itm=item(r.iid);
       h+=`<div class="list-row" style="${i<res.length-1?'':'border:none'}" onclick="go('rentals')">
         <div style="width:10px;height:40px;border-radius:5px;background:${statusCol(r.status)};flex-shrink:0"></div>
         <div style="flex:1;min-width:0">
-          <div style="font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e(itm?itm.name:'?')}</div>
-          <div style="font-size:13px;color:var(--t2);margin-top:1px">${e(r.name)} · ${r.qty}×</div>
+          <div style="font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e(rItemNames(r))}</div>
+          <div style="font-size:13px;color:var(--t2);margin-top:1px">${e(r.name)}</div>
         </div>
         <div style="text-align:right;flex-shrink:0">
           <span class="badge" style="background:${statusBg(r.status)};color:${statusCol(r.status)}">${r.status}</span>
@@ -500,7 +511,7 @@ function renderItems(){
 function openItemDetail(id){
   const itm=item(id);if(!itm)return;
   const c=cat(itm.cid)||{color:'#94A3B8',emoji:'📦',name:'–'};
-  const rentals=D.rentals.filter(r=>r.iid===id).slice(0,4);
+  const rentals=D.rentals.filter(r=>rLines(r).some(l=>l.iid===id)).slice(0,4);
   let h=`<div style="text-align:center;padding:8px 0 20px">
     <div style="width:72px;height:72px;border-radius:22px;background:${c.color}18;display:flex;align-items:center;justify-content:center;font-size:34px;margin:0 auto 10px">${c.emoji}</div>
     <div style="font-size:20px;font-weight:800;color:var(--t1)">${e(itm.name)}</div>
@@ -524,10 +535,10 @@ function openItemDetail(id){
   ${itm.notes?`<div class="igroup" style="margin-bottom:14px"><div class="list-row" style="border:none;flex-direction:column;align-items:flex-start;gap:4px"><div style="font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px">Notizen</div><div style="font-size:14px;color:var(--t2)">${e(itm.notes)}</div></div></div>`:''}
   ${rentals.length?`<div class="igroup" style="margin-bottom:14px">
     <div style="padding:12px 16px 4px;font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px">Letzte Verleihe</div>
-    ${rentals.map((r,i)=>`<div class="list-row" style="${i===rentals.length-1?'border:none':''}">
-      <div style="flex:1;min-width:0"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e(r.name)}</div><div style="font-size:12px;color:var(--t3)">${fdate(r.s)} – ${fdate(r.e)} · ${r.qty}×</div></div>
+    ${rentals.map((r,i)=>{const l=rLines(r).find(x=>x.iid===id);return`<div class="list-row" style="${i===rentals.length-1?'border:none':''}">
+      <div style="flex:1;min-width:0"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e(r.name)}</div><div style="font-size:12px;color:var(--t3)">${fdate(r.s)} – ${fdate(r.e)}${l?` · ${l.qty}×`:''}</div></div>
       <span class="badge" style="background:${statusBg(r.status)};color:${statusCol(r.status)}">${r.status}</span>
-    </div>`).join('')}
+    </div>`;}).join('')}
   </div>`:''}
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-bottom:8px">
     <button class="btn btn-s" onclick="closeModal();openItemForm(${id})">✏️ Bearbeiten</button>
@@ -584,8 +595,8 @@ function saveItem(e_,id){
 
 function delItem(id){
   const itm=item(id);if(!itm)return;
-  if(D.rentals.some(r=>r.iid===id&&!['zurückgegeben','storniert'].includes(r.status))){toast('Hat aktive Verleihe – zuerst abschließen','err');return;}
-  confirm_(`"${itm.name}" löschen?`,()=>{D.items=D.items.filter(i=>i.id!==id);D.rentals=D.rentals.filter(r=>r.iid!==id);save();toast('Gelöscht');render('items');});
+  if(D.rentals.some(r=>rLines(r).some(l=>l.iid===id)&&!['zurückgegeben','storniert'].includes(r.status))){toast('Hat aktive Verleihe – zuerst abschließen','err');return;}
+  confirm_(`"${itm.name}" löschen?`,()=>{D.items=D.items.filter(i=>i.id!==id);D.rentals=D.rentals.filter(r=>!rLines(r).every(l=>l.iid===id));save();toast('Gelöscht');render('items');});
 }
 
 // ── RENTALS PAGE ─────────────────────────────────────────────────────────────
@@ -605,15 +616,17 @@ function renderRentals(){
     h+=`<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-text">Keine Verleihe</div><div class="empty-sub">Tippe auf + um einen neuen anzulegen</div></div>`;
   } else {
     list.forEach(r=>{
-      const itm=item(r.iid);
+      const ls=rLines(r);
+      const headline=ls.length===1?(item(ls[0].iid)?.name||'Unbekannt'):ls.map(l=>item(l.iid)?.name||'?').join(' + ');
+      const sub=ls.length===1?`${ls[0].qty}×`:`${ls.length} Gegenstände`;
       h+=`<div class="c shadow" style="border-left:4px solid ${statusCol(r.status)}">
         <div style="padding:14px;cursor:pointer" onclick="toggleRd(${r.id})">
           <div style="display:flex;align-items:flex-start;gap:10px">
             <div style="flex:1;min-width:0">
-              <div style="font-weight:700;font-size:16px;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e(itm?itm.name:'Unbekannt')}</div>
+              <div style="font-weight:700;font-size:16px;color:var(--t1);overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${e(headline)}</div>
               <div style="font-size:13px;color:var(--t2);margin-top:3px;display:flex;align-items:center;gap:6px">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                ${e(r.name)} · ${r.qty}×
+                ${e(r.name)} · ${sub}
               </div>
               <div style="font-size:12px;color:var(--t3);margin-top:3px;display:flex;align-items:center;gap:6px">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
@@ -663,27 +676,60 @@ function setStatus(id,status){
   r.status=status;save();toast(`Status: ${status}`);render('rentals');
 }
 
+// ── RENTAL FORM ───────────────────────────────────────────────────────────────
+let rfLines=[];// [{iid,qty}]
+
+function rfItemOptions(selIid){
+  return D.items.filter(i=>i.rent).map(i=>`<option value="${i.id}"${selIid===i.id?' selected':''}>${e(i.name)} (${i.qty}×)</option>`).join('');
+}
+
+function rfRenderLines(){
+  const wrap=document.getElementById('rf-lines');if(!wrap)return;
+  wrap.innerHTML=rfLines.map((l,idx)=>`
+    <div style="display:flex;gap:8px;align-items:flex-end" id="rfline-${idx}">
+      <div class="field" style="flex:1">
+        ${idx===0?'<label class="lbl">Gegenstand *</label>':''}
+        <select class="inp" onchange="rfLines[${idx}].iid=parseInt(this.value)||0;rfCalcAll();rfAvailAll()">
+          <option value="">– wählen –</option>${rfItemOptions(l.iid)}
+        </select>
+      </div>
+      <div class="field" style="width:72px">
+        ${idx===0?'<label class="lbl">Menge</label>':''}
+        <input class="inp" type="number" min="1" value="${l.qty||1}" style="text-align:center"
+          oninput="rfLines[${idx}].qty=parseInt(this.value)||1;rfCalcAll();rfAvailAll()">
+      </div>
+      ${rfLines.length>1?`<button type="button" onclick="rfRemoveLine(${idx})"
+        style="width:40px;height:48px;border-radius:12px;background:#FEE2E2;border:none;cursor:pointer;color:var(--err);font-size:20px;flex-shrink:0;${idx===0?'margin-top:22px':''}">×</button>`:''}
+    </div>`).join('');
+  rfCalcAll();rfAvailAll();
+}
+
+function rfAddLine(){rfLines.push({iid:0,qty:1});rfRenderLines();}
+function rfRemoveLine(idx){rfLines.splice(idx,1);rfRenderLines();}
+
 function openRentalForm(id=null,prefillIid=null){
   const r=id?D.rentals.find(x=>x.id===id):null;
   const today=new Date().toISOString().split('T')[0];
-  const rentItems=D.items.filter(i=>i.rent);
+  rfLines=r?rLines(r).map(l=>({...l})):[{iid:prefillIid||0,qty:1}];
+  window._rfEditId=id||null;
   let h=`<form onsubmit="saveRental(event,${id||'null'})"><div style="display:flex;flex-direction:column;gap:14px">
-    ${!r?`<div class="field"><label class="lbl">Gegenstand *</label><select class="inp" name="iid" id="rf-iid" required onchange="rfCalc();rfAvail()"><option value="">– wählen –</option>${rentItems.map(i=>`<option value="${i.id}"${prefillIid===i.id?' selected':''}>${e(i.name)} (${i.qty}×)</option>`).join('')}</select></div>`:''}
+    <div id="rf-lines"></div>
+    <button type="button" class="btn btn-s" onclick="rfAddLine()" style="align-self:flex-start;padding:10px 16px;font-size:14px">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Artikel hinzufügen
+    </button>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-      <div class="field"><label class="lbl">Von *</label><input class="inp" type="date" name="sd" id="rf-sd" required value="${r?.s||today}" onchange="rfCalc();rfAvail()"></div>
-      <div class="field"><label class="lbl">Bis *</label><input class="inp" type="date" name="ed" id="rf-ed" required value="${r?.e||today}" onchange="rfCalc();rfAvail()"></div>
+      <div class="field"><label class="lbl">Von *</label><input class="inp" type="date" name="sd" id="rf-sd" required value="${r?.s||today}" onchange="rfCalcAll();rfAvailAll()"></div>
+      <div class="field"><label class="lbl">Bis *</label><input class="inp" type="date" name="ed" id="rf-ed" required value="${r?.e||today}" onchange="rfCalcAll();rfAvailAll()"></div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-      <div class="field"><label class="lbl">Menge</label><input class="inp" type="number" min="1" name="qty" id="rf-qty" value="${r?.qty||1}" onchange="rfCalc();rfAvail()"></div>
-      <div class="field"><label class="lbl">Preismodell</label><select class="inp" name="pt" id="rf-pt" onchange="rfCalc()">
-        <option value="daily"${(!r||r.pt==='daily')?' selected':''}>Tagespreis</option>
-        <option value="weekend"${r?.pt==='weekend'?' selected':''}>Wochenende</option>
-        <option value="custom"${r?.pt==='custom'?' selected':''}>Individuell</option>
-        <option value="free"${r?.pt==='free'?' selected':''}>Kostenlos</option>
-      </select></div>
-    </div>
+    <div class="field"><label class="lbl">Preismodell</label><select class="inp" name="pt" id="rf-pt" onchange="rfCalcAll()">
+      <option value="daily"${(!r||r.pt==='daily')?' selected':''}>Tagespreis</option>
+      <option value="weekend"${r?.pt==='weekend'?' selected':''}>Wochenende</option>
+      <option value="custom"${r?.pt==='custom'?' selected':''}>Individuell</option>
+      <option value="free"${r?.pt==='free'?' selected':''}>Kostenlos</option>
+    </select></div>
     <div id="rf-avail" style="display:none;border-radius:12px;padding:12px 14px;font-size:14px;font-weight:600"></div>
-    <div id="rf-price-box" style="display:none;background:#EFF6FF;border-radius:12px;padding:12px 14px;display:none;align-items:center;justify-content:space-between">
+    <div id="rf-price-box" style="display:none;background:#EFF6FF;border-radius:12px;padding:12px 14px;align-items:center;justify-content:space-between">
       <span style="font-size:14px;color:#1D4ED8">Berechneter Preis</span>
       <span id="rf-price-val" style="font-size:20px;font-weight:800;color:#1D4ED8"></span>
     </div>
@@ -707,66 +753,87 @@ function openRentalForm(id=null,prefillIid=null){
     </div>
   </div></form>`;
   openModal(r?'Verleih bearbeiten':'Neuer Verleihvorgang',h);
-  if(prefillIid) setTimeout(()=>{const s=document.getElementById('rf-iid');if(s){s.value=prefillIid;}rfCalc();rfAvail();},60);
-  else setTimeout(()=>{rfCalc();rfAvail();},60);
+  setTimeout(()=>rfRenderLines(),50);
 }
 
-function rfCalc(){
-  const isel=document.getElementById('rf-iid'),sd=document.getElementById('rf-sd'),ed=document.getElementById('rf-ed'),qty_el=document.getElementById('rf-qty'),pt_el=document.getElementById('rf-pt');
+function rfCalcAll(){
+  const sd=document.getElementById('rf-sd'),ed=document.getElementById('rf-ed'),pt_el=document.getElementById('rf-pt');
   const pb=document.getElementById('rf-price-box'),pv=document.getElementById('rf-price-val'),cp=document.getElementById('rf-custom');
   if(!sd||!ed||!pt_el)return;
   const pt=pt_el.value;
   if(pt==='custom'){if(pb)pb.style.display='none';if(cp)cp.style.display='block';return;}
   if(cp)cp.style.display='none';
-  const iid=isel?parseInt(isel.value):null;
-  const itm=iid?item(iid):null;
-  const s=sd.value,e_=ed.value,qty=parseInt(qty_el?.value)||1;
+  const s=sd.value,e_=ed.value;
   if(!s||!e_||e_<s){if(pb)pb.style.display='none';return;}
-  let price=null;
-  if(pt==='free') price=0;
-  else if(pt==='weekend'&&itm?.wknd) price=itm.wknd*qty;
-  else if(itm?.day) price=itm.day*days(s,e_)*qty;
-  if(price!==null&&pb&&pv){pb.style.display='flex';pv.textContent=fmt(price);}
-  else if(pb) pb.style.display='none';
+  if(pt==='free'){if(pb&&pv){pb.style.display='flex';pv.textContent=fmt(0);}return;}
+  let total=0,hasPrice=false;
+  rfLines.forEach(l=>{
+    if(!l.iid)return;
+    const itm=item(l.iid);if(!itm)return;
+    const qty=l.qty||1;
+    if(pt==='weekend'&&itm.wknd){total+=itm.wknd*qty;hasPrice=true;}
+    else if(itm.day){total+=itm.day*days(s,e_)*qty;hasPrice=true;}
+  });
+  if(hasPrice&&pb&&pv){pb.style.display='flex';pv.textContent=fmt(total);}
+  else if(pb)pb.style.display='none';
 }
 
-function rfAvail(){
-  const isel=document.getElementById('rf-iid'),sd=document.getElementById('rf-sd'),ed=document.getElementById('rf-ed'),qty_el=document.getElementById('rf-qty'),el=document.getElementById('rf-avail');
+function rfAvailAll(){
+  const sd=document.getElementById('rf-sd'),ed=document.getElementById('rf-ed'),el=document.getElementById('rf-avail');
   if(!el)return;
-  const iid=isel?parseInt(isel.value):null;
-  const s=sd?.value,e_=ed?.value,qty=parseInt(qty_el?.value)||1;
-  if(!iid||!s||!e_){el.style.display='none';return;}
-  const av=avail(iid,s,e_,qty);
-  el.style.display='flex';el.style.alignItems='center';el.style.gap='8px';
-  if(av.ok){el.style.background='#DCFCE7';el.style.color='#15803D';el.innerHTML=`<span style="font-size:18px">✓</span> Verfügbar (${av.n} von ${av.total})`;}
-  else{el.style.background='#FEE2E2';el.style.color='#DC2626';el.innerHTML=`<span style="font-size:18px">✗</span> Nicht verfügbar! Nur ${av.n} von ${av.total} frei`;}
+  const s=sd?.value,e_=ed?.value;
+  if(!s||!e_||rfLines.every(l=>!l.iid)){el.style.display='none';return;}
+  const lines=rfLines.filter(l=>l.iid);
+  const results=lines.map(l=>({name:item(l.iid)?.name||'?',...avail(l.iid,s,e_,l.qty||1,window._rfEditId||null)}));
+  const allOk=results.every(r=>r.ok);
+  el.style.display='block';
+  if(allOk){
+    el.style.background='#DCFCE7';el.style.color='#15803D';
+    el.innerHTML=results.length===1
+      ?`<div style="display:flex;align-items:center;gap:8px"><span style="font-size:18px">✓</span> ${results[0].name}: ${results[0].n} von ${results[0].total} verfügbar</div>`
+      :`<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span>✓</span> Alle Artikel verfügbar</div>`
+      +results.map(r=>`<div style="font-size:13px;padding-left:4px">• ${e(r.name)}: ${r.n}/${r.total}</div>`).join('');
+  } else {
+    el.style.background='#FEE2E2';el.style.color='#DC2626';
+    el.innerHTML=`<div style="margin-bottom:4px">Verfügbarkeit:</div>`
+      +results.map(r=>`<div style="font-size:13px">${r.ok?'✓':'✗'} ${e(r.name)}: ${r.n} von ${r.total} frei</div>`).join('');
+  }
 }
 
 function saveRental(ev,id){
   ev.preventDefault();const f=ev.target;
-  const iid_el=document.getElementById('rf-iid');
-  const iid=iid_el?parseInt(iid_el.value):(id?D.rentals.find(r=>r.id===id)?.iid:null);
-  const s=f.sd.value,e_=f.ed.value,qty=parseInt(f.qty.value)||1;
-  if(!iid){toast('Gegenstand wählen','err');return;}
+  const lines=rfLines.filter(l=>l.iid&&l.iid>0);
+  if(!lines.length){toast('Mindestens einen Gegenstand wählen','err');return;}
+  const s=f.sd.value,e_=f.ed.value;
   if(e_<s){toast('Enddatum vor Startdatum','err');return;}
-  const av=avail(iid,s,e_,qty,id);
-  if(!av.ok){toast(`Nicht verfügbar! Nur ${av.n} verfügbar`,'err');return;}
+  // Check availability for each line
+  for(const l of lines){
+    const av=avail(l.iid,s,e_,l.qty||1,id);
+    if(!av.ok){const itm=item(l.iid);toast(`${itm?.name||'?'}: nur ${av.n} verfügbar`,'err');return;}
+  }
   const pt=f.pt.value;
-  const itm=item(iid);
   let total=null;
   if(pt==='custom') total=parseFloat(f.total?.value)||null;
-  else if(pt==='weekend'&&itm?.wknd) total=itm.wknd*qty;
-  else if(pt==='daily'&&itm?.day) total=itm.day*days(s,e_)*qty;
-  const data={iid,name:f.bname.value.trim(),phone:f.bphone.value.trim(),email:f.bemail.value.trim(),addr:f.baddr.value.trim(),s,e:e_,qty,status:f.status?.value||'reserviert',pt,total,notes:f.notes.value.trim()};
+  else if(pt==='free') total=0;
+  else {
+    total=0;
+    lines.forEach(l=>{
+      const itm=item(l.iid);const qty=l.qty||1;
+      if(pt==='weekend'&&itm?.wknd) total+=itm.wknd*qty;
+      else if(itm?.day) total+=itm.day*days(s,e_)*qty;
+    });
+    if(total===0)total=null;
+  }
+  const data={lines,name:f.bname.value.trim(),phone:f.bphone.value.trim(),email:f.bemail.value.trim(),addr:f.baddr.value.trim(),s,e:e_,status:f.status?.value||'reserviert',pt,total,notes:f.notes.value.trim()};
   if(!data.name){toast('Name ist Pflichtfeld','err');return;}
-  if(id){Object.assign(D.rentals.find(r=>r.id===id),data);toast('Gespeichert');}
+  if(id){const existing=D.rentals.find(r=>r.id===id);delete existing.iid;delete existing.qty;Object.assign(existing,data);toast('Gespeichert');}
   else{D.rentals.push({id:nid(),...data});toast('Verleih angelegt');}
   save();closeModal();render('rentals');
 }
 
 function delRental(id){
   const r=D.rentals.find(x=>x.id===id);if(!r)return;
-  confirm_(`Verleih "${item(r.iid)?.name||'?'}" an ${r.name} löschen?`,()=>{D.rentals=D.rentals.filter(x=>x.id!==id);save();toast('Gelöscht');render('rentals');});
+  confirm_(`Verleih an ${r.name} löschen?`,()=>{D.rentals=D.rentals.filter(x=>x.id!==id);save();toast('Gelöscht');render('rentals');});
 }
 
 // ── WAREHOUSES PAGE ──────────────────────────────────────────────────────────
