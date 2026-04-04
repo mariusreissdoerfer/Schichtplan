@@ -30,9 +30,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue"
 input,select,textarea,button{font-family:inherit}
 input,select,textarea{font-size:16px!important;color:var(--t1)}
 ::-webkit-scrollbar{display:none}
-.page{position:absolute;inset:0;overflow-y:auto;overscroll-behavior:none;
+.page{position:absolute;inset:0;overflow-y:scroll;overflow-x:hidden;
   -webkit-overflow-scrolling:touch;padding-bottom:calc(env(safe-area-inset-bottom,0px)+80px);
-  opacity:0;transition:opacity .2s ease}
+  opacity:0;transition:opacity .2s ease;overscroll-behavior-y:contain}
 .page.active{opacity:1}
 
 /* Cards */
@@ -90,7 +90,7 @@ textarea.inp{resize:none}
 .sheet.open{transform:translateY(0)}
 .sheet-handle{width:36px;height:4px;border-radius:2px;background:#D1D5DB;margin:10px auto 4px}
 .sheet-title{font-size:18px;font-weight:700;padding:4px 20px 16px;color:var(--t1)}
-.sheet-body{overflow-y:auto;padding:0 20px;
+.sheet-body{overflow-y:scroll;-webkit-overflow-scrolling:touch;padding:0 20px;
   padding-bottom:calc(env(safe-area-inset-bottom,0px)+20px);flex:1}
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:50;
   opacity:0;pointer-events:none;transition:opacity .3s;backdrop-filter:blur(4px)}
@@ -221,7 +221,7 @@ textarea.inp{resize:none}
 <div style="position:fixed;inset:0;display:flex;flex-direction:column;overflow:hidden">
 
   <!-- PAGES CONTAINER -->
-  <div style="flex:1;position:relative;overflow:hidden">
+  <div style="flex:1;min-height:0;position:relative;overflow:hidden">
     <div id="pg-dashboard" class="page"></div>
     <div id="pg-items" class="page"></div>
     <div id="pg-rentals" class="page"></div>
