@@ -314,7 +314,7 @@ function migrateRentals(d){
     if(!r.lines&&r.iid){r.lines=[{iid:r.iid,qty:r.qty||1}];delete r.iid;delete r.qty;}
   });
 }
-let curTab='dashboard', itemSearch='', itemCat=0, rentalSeg='alle', _nid=0;
+let curTab='dashboard', itemSearch='', itemCat=0, rentalSeg='alle', rentalView='list', _nid=0;
 function nid(){ if(!_nid){ const all=[...D.items,...D.categories,...D.warehouses,...D.locations,...D.rentals]; _nid=all.length?Math.max(...all.map(x=>x.id))+1:100; } return _nid++; }
 function save(){ try{ localStorage.setItem('vi2',JSON.stringify(D)); }catch(e){} }
 
@@ -601,11 +601,17 @@ function delItem(id){
 
 // ── RENTALS PAGE ─────────────────────────────────────────────────────────────
 function renderRentals(){
+  if(rentalView==='timeline') return renderTimelineView();
   const segs=['alle','reserviert','ausgeliehen','zurückgegeben','storniert'];
   const list=rentalSeg==='alle'?D.rentals:D.rentals.filter(r=>r.status===rentalSeg);
   const cnt=s=>D.rentals.filter(r=>r.status===s).length;
   let h=`<div style="background:linear-gradient(135deg,#1E3A8A,#2563EB,#3B82F6);padding:max(16px,env(safe-area-inset-top,16px)) 16px 20px">
-    <div style="font-size:22px;font-weight:800;color:#fff;margin-bottom:12px">Verleih</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div style="font-size:22px;font-weight:800;color:#fff">Verleih</div>
+      <button onclick="rentalView='timeline';render('rentals')" style="padding:7px 14px;border-radius:20px;border:1.5px solid rgba(255,255,255,.6);background:transparent;color:#fff;font-size:13px;font-weight:700;cursor:pointer">
+        📅 Zeitleiste
+      </button>
+    </div>
     <div class="seg">
       ${segs.map(s=>`<div class="seg-item${rentalSeg===s?' active':''}" onclick="rentalSeg='${s}';render('rentals')">${s==='alle'?`Alle ${D.rentals.length}`:s+(cnt(s)?` ${cnt(s)}`:'')} </div>`).join('')}
     </div>
@@ -674,6 +680,156 @@ function toggleRd(id){
 function setStatus(id,status){
   const r=D.rentals.find(x=>x.id===id);if(!r)return;
   r.status=status;save();toast(`Status: ${status}`);render('rentals');
+}
+
+// ── TIMELINE VIEW ─────────────────────────────────────────────────────────────
+function renderTimelineView(){
+  const CELL=36,LEFT=110,DAYS_BEFORE=7,TOTAL=56;
+  const now=new Date();now.setHours(0,0,0,0);
+  const toISO=d=>d.toISOString().split('T')[0];
+  const todayStr=toISO(now);
+  const DAY_NAMES=['So','Mo','Di','Mi','Do','Fr','Sa'];
+  const MON_NAMES=['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+
+  // Build date array
+  const dates=[];
+  for(let i=0;i<TOTAL;i++){const d=new Date(now);d.setDate(d.getDate()-DAYS_BEFORE+i);dates.push(d);}
+
+  // Month spans for top header
+  const months=[];
+  dates.forEach((d,i)=>{
+    const key=d.getFullYear()+'-'+d.getMonth();
+    if(!months.length||months[months.length-1].key!==key)
+      months.push({key,label:MON_NAMES[d.getMonth()]+' '+d.getFullYear(),start:i,count:1});
+    else months[months.length-1].count++;
+  });
+
+  const rentable=D.items.filter(i=>i.rent);
+  const active=D.rentals.filter(r=>r.status!=='storniert');
+
+  function rentalForItemDay(iid,ds){
+    return active.find(r=>rLines(r).some(l=>l.iid===iid)&&r.s<=ds&&r.e>=ds);
+  }
+
+  // Month header row
+  let mhCells=`<th style="position:sticky;left:0;z-index:4;background:#F8FAFC;min-width:${LEFT}px;width:${LEFT}px;border-right:2px solid var(--sep);border-bottom:1px solid var(--sep)"></th>`;
+  months.forEach(m=>{
+    mhCells+=`<th colspan="${m.count}" style="text-align:left;padding:6px 8px;font-size:11px;font-weight:700;color:var(--t2);background:#F8FAFC;border-right:1px solid var(--sep);border-bottom:1px solid var(--sep);letter-spacing:.4px;white-space:nowrap">${m.label}</th>`;
+  });
+
+  // Day header row
+  let dhCells=`<th style="position:sticky;left:0;z-index:4;background:#fff;min-width:${LEFT}px;width:${LEFT}px;border-right:2px solid var(--sep);border-bottom:2px solid var(--sep)"></th>`;
+  dates.forEach(d=>{
+    const ds=toISO(d),isToday=ds===todayStr,isWE=d.getDay()===0||d.getDay()===6;
+    dhCells+=`<th style="min-width:${CELL}px;width:${CELL}px;padding:3px 0;text-align:center;border-right:1px solid var(--sep);border-bottom:2px solid ${isToday?'var(--p)':'var(--sep)'};background:${isToday?'#EFF6FF':isWE?'#FAFAFA':'#fff'}">
+      <div style="font-size:9px;font-weight:600;color:${isToday?'var(--p)':isWE?'var(--t3)':'var(--t3)'}">${DAY_NAMES[d.getDay()]}</div>
+      <div style="font-size:12px;font-weight:${isToday?800:600};color:${isToday?'var(--p)':isWE?'var(--t2)':'var(--t1)'};line-height:1.3">${d.getDate()}</div>
+    </th>`;
+  });
+
+  // Item rows
+  let rows='';
+  if(!rentable.length){
+    rows=`<tr><td colspan="${TOTAL+1}" style="padding:40px;text-align:center;color:var(--t3);font-size:14px">Keine verleihbaren Artikel</td></tr>`;
+  } else {
+    rentable.forEach((itm,ri)=>{
+      const c=cat(itm.cid)||{color:'#94A3B8',emoji:'📦'};
+      let cells='';
+      let prevRentalId=null;
+      dates.forEach((d,di)=>{
+        const ds=toISO(d),isToday=ds===todayStr,isWE=d.getDay()===0||d.getDay()===6;
+        const r=rentalForItemDay(itm.id,ds);
+        let bg=isToday?'#DBEAFE30':isWE?'#FAFAFA':'#fff';
+        let content='';
+        if(r){
+          bg=statusBg(r.status);
+          // Show borrower name at start of rental (or at first visible day)
+          if(r.s===ds||(di===0&&r.s<ds)){
+            const lbl=r.name.split(' ')[0];
+            content=`<span style="font-size:9px;font-weight:700;color:${statusCol(r.status)};white-space:nowrap;position:absolute;left:3px;right:2px;overflow:hidden;text-overflow:ellipsis;top:50%;transform:translateY(-50%)">${e(lbl)}</span>`;
+          }
+        }
+        const rBorder=r&&di<TOTAL-1&&toISO(dates[di+1])<=r.e?`1px solid ${statusCol(r.status)}30`:'1px solid var(--sep)';
+        cells+=`<td style="min-width:${CELL}px;width:${CELL}px;background:${bg};border-right:${rBorder};border-bottom:1px solid var(--sep);padding:0;position:relative;cursor:${r?'pointer':'default'}"
+          ${r?`onclick="tlRentalTap(${r.id})"`:''}>
+          <div style="height:32px"></div>${content}
+        </td>`;
+        prevRentalId=r?.id||null;
+      });
+      rows+=`<tr>
+        <td style="position:sticky;left:0;z-index:2;background:#fff;min-width:${LEFT}px;width:${LEFT}px;padding:6px 10px;border-right:2px solid var(--sep);border-bottom:1px solid var(--sep)">
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:14px">${c.emoji}</span>
+            <div style="min-width:0">
+              <div style="font-size:11px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:${LEFT-40}px">${e(itm.name)}</div>
+              <div style="font-size:10px;color:var(--t3)">${itm.qty}×</div>
+            </div>
+          </div>
+        </td>${cells}
+      </tr>`;
+    });
+  }
+
+  // Legend & today marker scroll
+  const scrollLeft=Math.max(0,(DAYS_BEFORE-2)*CELL);
+
+  let h=`<div style="background:linear-gradient(135deg,#1E3A8A,#2563EB,#3B82F6);padding:max(16px,env(safe-area-inset-top,16px)) 16px 20px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div style="font-size:22px;font-weight:800;color:#fff">Zeitleiste</div>
+      <button onclick="rentalView='list';render('rentals')" style="padding:7px 14px;border-radius:20px;border:1.5px solid rgba(255,255,255,.6);background:transparent;color:#fff;font-size:13px;font-weight:700;cursor:pointer">
+        ☰ Liste
+      </button>
+    </div>
+    <div style="font-size:13px;color:rgba(255,255,255,.7)">Aktive & reservierte Verleihe · ${rentable.length} Artikel</div>
+  </div>
+  <div id="tl-scroll" style="overflow-x:auto;-webkit-overflow-scrolling:touch;background:#fff">
+    <table style="border-collapse:collapse;background:#fff">
+      <thead>
+        <tr>${mhCells}</tr>
+        <tr>${dhCells}</tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>
+  <div style="padding:12px 16px 4px;display:flex;flex-wrap:wrap;gap:12px;border-top:1px solid var(--sep)">
+    ${['reserviert','ausgeliehen','zurückgegeben'].map(s=>`<div style="display:flex;align-items:center;gap:5px">
+      <div style="width:14px;height:14px;border-radius:4px;background:${statusBg(s)};border:1.5px solid ${statusCol(s)}40"></div>
+      <span style="font-size:12px;color:var(--t2);font-weight:600">${s}</span>
+    </div>`).join('')}
+  </div>
+  <div id="tl-detail" style="padding:0 16px"></div>
+  <div style="height:8px"></div>`;
+
+  // Scroll to today after render
+  setTimeout(()=>{const el=document.getElementById('tl-scroll');if(el)el.scrollLeft=${scrollLeft};},50);
+  return h;
+}
+
+function tlRentalTap(id){
+  const r=D.rentals.find(x=>x.id===id);if(!r)return;
+  const det=document.getElementById('tl-detail');if(!det)return;
+  const ls=rLines(r);
+  const names=ls.map(l=>item(l.iid)?.name||'?').join(', ');
+  const already=det.dataset.open===String(id);
+  if(already){det.innerHTML='';det.dataset.open='';return;}
+  det.dataset.open=String(id);
+  det.innerHTML=`<div class="c shadow" style="margin:10px 0;border-left:4px solid ${statusCol(r.status)}">
+    <div style="padding:14px">
+      <div style="font-weight:700;font-size:15px;color:var(--t1);margin-bottom:4px">${e(names)}</div>
+      <div style="font-size:13px;color:var(--t2);margin-bottom:6px">${e(r.name)}</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <span class="badge" style="background:${statusBg(r.status)};color:${statusCol(r.status)}">${r.status}</span>
+        <span style="font-size:13px;color:var(--t3)">${fdate(r.s)} – ${fdate(r.e)}</span>
+        ${r.total?`<span style="font-size:14px;font-weight:800;color:var(--t1)">${fmt(r.total)}</span>`:''}
+      </div>
+      ${ls.length>1?`<div style="font-size:12px;color:var(--t3);margin-top:6px">${ls.map(l=>`${item(l.iid)?.name||'?'} ${l.qty}×`).join(' · ')}</div>`:''}
+    </div>
+    <div style="display:flex;border-top:1px solid var(--sep)">
+      ${r.status==='reserviert'?`<button onclick="setStatus(${id},'ausgeliehen');renderTimelineView&&render('rentals')" style="flex:1;padding:12px 6px;background:none;border:none;font-size:13px;font-weight:700;color:var(--p);cursor:pointer">✓ Ausgeliehen</button><div style="width:1px;background:var(--sep)"></div>`:''}
+      ${r.status==='ausgeliehen'?`<button onclick="setStatus(${id},'zurückgegeben');render('rentals')" style="flex:1;padding:12px 6px;background:none;border:none;font-size:13px;font-weight:700;color:var(--ok);cursor:pointer">✓ Zurückgegeben</button><div style="width:1px;background:var(--sep)"></div>`:''}
+      <button onclick="closeModal();openRentalForm(${id})" style="flex:1;padding:12px 6px;background:none;border:none;font-size:13px;font-weight:600;color:var(--t2);cursor:pointer">Bearbeiten</button>
+    </div>
+  </div>`;
 }
 
 // ── RENTAL FORM ───────────────────────────────────────────────────────────────
