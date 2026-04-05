@@ -53,7 +53,7 @@ input,select,textarea{font-size:16px!important;color:var(--t1)}
   padding:13px 14px;font-size:16px;outline:none;transition:border-color .2s,background .2s}
 .inp:focus{border-color:var(--p);background:#fff}
 textarea.inp{resize:none}
-input[type="date"].inp{-webkit-appearance:none;appearance:none;min-height:52px}
+input[type="date"].inp{-webkit-appearance:none;appearance:none;height:52px;box-sizing:border-box;line-height:normal}
 .lbl{display:block;font-size:13px;font-weight:600;color:var(--t2);margin-bottom:5px;letter-spacing:.3px}
 .field{display:flex;flex-direction:column;gap:0}
 
@@ -669,8 +669,8 @@ function openItemForm(id=null){
       <div style="font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Buchhaltung</div>
       <div style="display:flex;flex-direction:column;gap:10px">
         <input class="inp" name="invnr" placeholder="Inventarnummer (z.B. INV-001)" value="${e(itm?.invnr||'')}">
-        <div class="field"><label class="lbl">Anschaffungsdatum</label><input class="inp" type="date" name="acquired" id="if-acquired" oninput="ifUpdateBw()" value="${itm?.acquired||''}"></div>
-        <div class="field"><label class="lbl">Nutzungsdauer (Jahre)</label><input class="inp" type="number" min="1" max="50" name="lifespan" id="if-lifespan" oninput="ifUpdateBw()" value="${itm?.lifespan||''}"></div>
+        <div class="field"><label class="lbl">Anschaffungsdatum</label><input class="inp" type="date" name="acquired" id="if-acquired" oninput="ifUpdateBw()" style="height:52px;box-sizing:border-box" value="${itm?.acquired||''}"></div>
+        <div class="field"><label class="lbl">Nutzungsdauer (Jahre)</label><input class="inp" type="number" min="1" max="50" name="lifespan" id="if-lifespan" oninput="ifUpdateBw()" style="height:52px;box-sizing:border-box" value="${itm?.lifespan||''}"></div>
         <div id="if-bw" style="display:none;font-size:13px;font-weight:600;color:#1D4ED8;background:#EFF6FF;border-radius:10px;padding:8px 12px"></div>
       </div>
     </div>
