@@ -314,7 +314,11 @@ const DEMO={
     {id:3,name:'Grillwagen groß',desc:'Holzkohlegrillwagen, 120 cm Grillrost',cid:4,qty:2,cond:'sehr gut',price:350,rent:true,day:20,wknd:30,lid:1,notes:'Reinigung nach Verleih nötig',invnr:'INV-003',acquired:'2022-04-20',lifespan:12},
     {id:4,name:'Verlängerungskabel 50m',desc:'Gelbes 16A Kabel mit Mehrfachsteckdose',cid:3,qty:3,cond:'gut',price:45,rent:true,day:5,wknd:8,lid:3,notes:'',invnr:'INV-004',acquired:'2021-09-10',lifespan:8},
     {id:5,name:'IBC-Container 1000L',desc:'Kunststoff-Gitterbox für Wasser',cid:5,qty:4,cond:'befriedigend',price:180,rent:false,day:null,wknd:null,lid:5,notes:'Nicht für Lebensmittel',invnr:'INV-005',acquired:'2018-05-01',lifespan:20},
-    {id:6,name:'Kunststoffbecher 0,4L',desc:'Transparente Wiederverwendungsbecher',cid:4,qty:250,cond:'gut',price:0.8,rent:true,day:15,wknd:20,lid:2,notes:'Preis pauschal',invnr:'',acquired:'',lifespan:null},
+    {id:6,name:'Kunststoffbecher 0,4L',desc:'Transparente Wiederverwendungsbecher',cid:4,qty:250,cond:'gut',price:0.8,rent:true,day:15,wknd:20,lid:2,notes:'Preis pauschal (Satz von 50 Bechern)',invnr:'INV-006',acquired:'',lifespan:null},
+    {id:7,name:'PA-Anlage 2.1',desc:'Aktives Lautsprecherset mit Subwoofer und 2 Tops, Behringer',cid:3,qty:1,cond:'sehr gut',price:680,rent:true,day:40,wknd:60,dayMember:25,wkndMember:40,lid:3,notes:'Kabel im Zubehörkoffer',invnr:'INV-007',acquired:'2021-02-10',lifespan:10},
+    {id:8,name:'Pavillon 3×3m',desc:'Faltpavillon mit Seitenteilen, wasserdicht',cid:1,qty:6,cond:'gut',price:120,rent:true,day:12,wknd:18,dayMember:8,wkndMember:12,lid:4,notes:'',invnr:'INV-008',acquired:'2020-08-15',lifespan:8},
+    {id:9,name:'Kaffeemaschine 100-Tassen',desc:'Großküchenmaschine, 10L Kapazität',cid:4,qty:2,cond:'sehr gut',price:290,rent:true,day:15,wknd:22,lid:1,notes:'Entkalken nach je 10 Einsätzen',invnr:'INV-009',acquired:'2023-01-20',lifespan:8},
+    {id:10,name:'Biertischgarnitur (Holz)',desc:'Massive Holzgarnitur, 2 Bänke + 1 Tisch',cid:2,qty:8,cond:'befriedigend',price:150,rent:true,day:8,wknd:12,lid:2,notes:'Einige Tische haben Kratzer',invnr:'INV-010',acquired:'2017-06-01',lifespan:20},
   ],
   rentals:[
     {id:1,lines:[{iid:1,qty:1},{iid:2,qty:2}],name:'SVG Musterclub',phone:'0151 12345678',email:'kontakt@svg-musterclub.de',addr:'Vereinsstraße 10, 12345 Musterstadt',s:'2026-03-28',e:'2026-04-01',status:'ausgeliehen',pt:'daily',total:330,notes:'Aufbau Do, Abbau Mi'},
@@ -607,9 +611,9 @@ function openItemForm(id=null){
       <div style="font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Buchhaltung</div>
       <div style="display:flex;flex-direction:column;gap:10px">
         <input class="inp" name="invnr" placeholder="Inventarnummer (z.B. INV-001)" value="${e(itm?.invnr||'')}">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-          <div class="field"><label class="lbl">Anschaffungsdatum</label><input class="inp" type="date" name="acquired" id="if-acquired" oninput="ifUpdateBw()" value="${itm?.acquired||''}"></div>
-          <div class="field"><label class="lbl">Nutzungsdauer (J.)</label><input class="inp" type="number" min="1" max="50" name="lifespan" id="if-lifespan" oninput="ifUpdateBw()" value="${itm?.lifespan||''}"></div>
+        <div style="display:flex;gap:10px;align-items:flex-end">
+          <div class="field" style="flex:1;min-width:0"><label class="lbl">Anschaffungsdatum</label><input class="inp" type="date" name="acquired" id="if-acquired" oninput="ifUpdateBw()" value="${itm?.acquired||''}"></div>
+          <div class="field" style="width:90px;flex-shrink:0"><label class="lbl">Nutzung (J.)</label><input class="inp" type="number" min="1" max="50" name="lifespan" id="if-lifespan" oninput="ifUpdateBw()" style="padding-left:10px;padding-right:6px" value="${itm?.lifespan||''}"></div>
         </div>
         <div id="if-bw" style="display:none;font-size:13px;font-weight:600;color:#1D4ED8;background:#EFF6FF;border-radius:10px;padding:8px 12px"></div>
       </div>
