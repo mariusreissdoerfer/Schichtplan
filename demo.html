@@ -272,6 +272,13 @@ textarea.inp{resize:none}
         </svg>
         <span style="font-size:10px;font-weight:600">Lager</span>
       </div>
+      <div class="nav-item" id="nav-stats" onclick="go('stats')">
+        <div class="nav-dot"></div>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+        </svg>
+        <span style="font-size:10px;font-weight:600">Statistik</span>
+      </div>
       <div class="nav-item" id="nav-more" onclick="go('more')">
         <div class="nav-dot"></div>
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -397,6 +404,7 @@ function render(tab){
   else if(tab==='items') c.innerHTML=renderItems();
   else if(tab==='rentals'){c.innerHTML=renderRentals();document.getElementById('fab').style.display=rentalView==='timeline'?'none':'flex';}
   else if(tab==='warehouses') c.innerHTML=renderWH();
+  else if(tab==='stats') c.innerHTML=renderStatsPage();
   else if(tab==='more') c.innerHTML=renderMore();
 }
 
@@ -569,13 +577,62 @@ function openItemDetail(id){
     <div class="list-row" style="border:none"><div style="flex:1;font-size:14px;color:var(--t2)">Inventarnummer</div><div style="font-weight:600;font-size:14px">${e(itm.invnr)}</div></div>
   </div>`:'');})()}
   ${itm.rent&&(itm.day||itm.wknd||itm.dayMember||itm.wkndMember)?`<div class="igroup" style="margin-bottom:14px">
-    <div style="padding:12px 16px 4px;font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px">Mietpreise</div>
-    ${itm.day?`<div class="list-row"><div style="flex:1;font-size:14px;color:var(--t2)">Tagespreis</div><div style="font-weight:700;color:var(--p)">${fmt(itm.day)}</div></div>`:''}
-    ${itm.dayMember?`<div class="list-row"><div style="flex:1;font-size:14px;color:var(--t2)">Tagespreis Mitglied</div><div style="font-weight:700;color:#0891B2">${fmt(itm.dayMember)}</div></div>`:''}
-    ${itm.wknd?`<div class="list-row"><div style="flex:1;font-size:14px;color:var(--t2)">Wochenende</div><div style="font-weight:700;color:#7C3AED">${fmt(itm.wknd)}</div></div>`:''}
-    ${itm.wkndMember?`<div class="list-row" style="border:none"><div style="flex:1;font-size:14px;color:var(--t2)">Wochenende Mitglied</div><div style="font-weight:700;color:#0891B2">${fmt(itm.wkndMember)}</div></div>`:''}
+    <div style="padding:12px 16px 8px;font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px">Mietpreise</div>
+    <div style="padding:0 16px 12px">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;font-size:13px">
+        <div style="color:var(--t3);font-weight:600;padding-bottom:6px"></div>
+        <div style="color:var(--t3);font-weight:600;text-align:center;padding-bottom:6px">Standard</div>
+        <div style="color:#0891B2;font-weight:600;text-align:center;padding-bottom:6px">Mitglied</div>
+        ${itm.day||itm.dayMember?`
+        <div style="color:var(--t2);padding:6px 0;border-top:1px solid var(--sep)">Tagespreis</div>
+        <div style="font-weight:700;color:var(--p);text-align:center;padding:6px 0;border-top:1px solid var(--sep)">${itm.day?fmt(itm.day):'–'}</div>
+        <div style="font-weight:700;color:#0891B2;text-align:center;padding:6px 0;border-top:1px solid var(--sep)">${itm.dayMember?fmt(itm.dayMember):'–'}</div>`:''}
+        ${itm.wknd||itm.wkndMember?`
+        <div style="color:var(--t2);padding:6px 0;border-top:1px solid var(--sep)">Wochenende</div>
+        <div style="font-weight:700;color:#7C3AED;text-align:center;padding:6px 0;border-top:1px solid var(--sep)">${itm.wknd?fmt(itm.wknd):'–'}</div>
+        <div style="font-weight:700;color:#0891B2;text-align:center;padding:6px 0;border-top:1px solid var(--sep)">${itm.wkndMember?fmt(itm.wkndMember):'–'}</div>`:''}
+      </div>
+    </div>
   </div>`:''}
-  <div class="igroup" style="margin-bottom:14px">
+  ${(()=>{
+    const allR=D.rentals.filter(r=>rLines(r).some(l=>l.iid===id)&&!['storniert'].includes(r.status));
+    const yr=new Date().getFullYear();
+    const yrR=allR.filter(r=>r.s&&r.s.startsWith(yr));
+    const rev=r=>{
+      if(!r.total)return 0;
+      const ls=rLines(r);const tot=ls.reduce((s,x)=>s+x.qty,0);
+      const l=ls.find(x=>x.iid===id);return l?r.total*(l.qty/tot):0;};
+    const totalRev=allR.reduce((s,r)=>s+rev(r),0);
+    const yrRev=yrR.reduce((s,r)=>s+rev(r),0);
+    const avgDays=allR.length?Math.round(allR.reduce((s,r)=>s+days(r.s,r.e),0)/allR.length):0;
+    const maxPoss=Math.max(1,days('2020-01-01',new Date().toISOString().slice(0,10)))*itm.qty;
+    const usedDays=allR.reduce((s,r)=>s+days(r.s,r.e)*(rLines(r).find(l=>l.iid===id)?.qty||0),0);
+    const util=Math.min(100,Math.round(usedDays/maxPoss*100));
+    if(!allR.length)return '';
+    return `<div class="igroup" style="margin-bottom:14px">
+    <div style="padding:12px 16px 4px;font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px">Statistik</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;padding:10px 16px 14px;gap:12px">
+      <div style="background:#F8FAFC;border-radius:12px;padding:12px;text-align:center">
+        <div style="font-size:22px;font-weight:800;color:var(--t1)">${allR.length}</div>
+        <div style="font-size:11px;color:var(--t3);font-weight:600;margin-top:2px">Verleihe gesamt</div>
+        ${yrR.length?`<div style="font-size:12px;color:var(--p);font-weight:600;margin-top:3px">${yrR.length} in ${yr}</div>`:''}
+      </div>
+      <div style="background:#F8FAFC;border-radius:12px;padding:12px;text-align:center">
+        <div style="font-size:22px;font-weight:800;color:var(--ok)">${totalRev>0?fmt(totalRev):'–'}</div>
+        <div style="font-size:11px;color:var(--t3);font-weight:600;margin-top:2px">Umsatz gesamt</div>
+        ${yrRev>0?`<div style="font-size:12px;color:var(--p);font-weight:600;margin-top:3px">${fmt(yrRev)} in ${yr}</div>`:''}
+      </div>
+      <div style="background:#F8FAFC;border-radius:12px;padding:12px;text-align:center">
+        <div style="font-size:22px;font-weight:800;color:var(--t1)">${avgDays}</div>
+        <div style="font-size:11px;color:var(--t3);font-weight:600;margin-top:2px">Ø Mietdauer (Tage)</div>
+      </div>
+      <div style="background:#F8FAFC;border-radius:12px;padding:12px;text-align:center">
+        <div style="font-size:22px;font-weight:800;color:${util>50?'var(--ok)':util>20?'var(--warn)':'var(--t3)'}">${util}%</div>
+        <div style="font-size:11px;color:var(--t3);font-weight:600;margin-top:2px">Auslastung</div>
+      </div>
+    </div>
+  </div>`;
+  })()}
     <div class="list-row" style="border:none"><div style="flex:1;font-size:14px;color:var(--t2)">Lagerort</div><div style="font-weight:600;font-size:14px;text-align:right;max-width:60%">${e(locFull(itm.lid))}</div></div>
   </div>
   ${itm.notes?`<div class="igroup" style="margin-bottom:14px"><div class="list-row" style="border:none;flex-direction:column;align-items:flex-start;gap:4px"><div style="font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px">Notizen</div><div style="font-size:14px;color:var(--t2)">${e(itm.notes)}</div></div></div>`:''}
@@ -1361,6 +1418,89 @@ function delLoc(id){
 }
 
 // ── MORE PAGE ────────────────────────────────────────────────────────────────
+function renderStatsPage(){
+  return `<div style="background:linear-gradient(135deg,#1E3A8A,#2563EB,#3B82F6);padding:max(16px,env(safe-area-inset-top,16px)) 16px 20px">
+    <div style="font-size:22px;font-weight:800;color:#fff">Statistik</div>
+    <div style="font-size:14px;color:rgba(255,255,255,.7);margin-top:2px">${new Date().getFullYear()} · Gesamtübersicht</div>
+  </div>`+renderStats();
+}
+function renderStats(){
+  const yr=new Date().getFullYear();
+  const validR=D.rentals.filter(r=>!['storniert'].includes(r.status));
+  const yrR=validR.filter(r=>r.s&&r.s.startsWith(yr));
+  const totalRev=validR.reduce((s,r)=>s+(r.total||0),0);
+  const yrRev=yrR.reduce((s,r)=>s+(r.total||0),0);
+  // Monthly revenue last 12 months
+  const months=[];for(let i=11;i>=0;i--){const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-i);months.push({y:d.getFullYear(),m:d.getMonth(),lbl:d.toLocaleString('de',{month:'short'}),rev:0,cnt:0});}
+  validR.forEach(r=>{if(!r.s)return;const d=new Date(r.s);const mo=months.find(m=>m.y===d.getFullYear()&&m.m===d.getMonth());if(mo){mo.rev+=(r.total||0);mo.cnt++;}});
+  const maxRev=Math.max(1,...months.map(m=>m.rev));
+  // Top items by revenue
+  const itemRev=D.items.map(itm=>{
+    const rs=validR.filter(r=>rLines(r).some(l=>l.iid===itm.id));
+    const rev=rs.reduce((s,r)=>{if(!r.total)return s;const ls=rLines(r);const tot=ls.reduce((a,x)=>a+x.qty,0);const l=ls.find(x=>x.iid===itm.id);return s+(l?r.total*(l.qty/tot):0);},0);
+    return{itm,rev,cnt:rs.length};
+  }).filter(x=>x.cnt>0).sort((a,b)=>b.rev-a.rev).slice(0,5);
+  const itemCnt=D.items.map(itm=>({itm,cnt:validR.filter(r=>rLines(r).some(l=>l.iid===itm.id)).length})).filter(x=>x.cnt>0).sort((a,b)=>b.cnt-a.cnt).slice(0,5);
+  const maxCnt=Math.max(1,...itemCnt.map(x=>x.cnt));
+  return `<div style="padding:16px;display:flex;flex-direction:column;gap:18px" class="fadeUp">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    <div style="background:linear-gradient(135deg,#2563EB,#3B82F6);border-radius:16px;padding:14px;color:#fff">
+      <div style="font-size:11px;font-weight:700;opacity:.75;text-transform:uppercase;letter-spacing:.5px">Verleihe ${yr}</div>
+      <div style="font-size:28px;font-weight:800;margin-top:4px">${yrR.length}</div>
+      <div style="font-size:12px;opacity:.7;margin-top:2px">gesamt: ${validR.length}</div>
+    </div>
+    <div style="background:linear-gradient(135deg,#059669,#10B981);border-radius:16px;padding:14px;color:#fff">
+      <div style="font-size:11px;font-weight:700;opacity:.75;text-transform:uppercase;letter-spacing:.5px">Umsatz ${yr}</div>
+      <div style="font-size:28px;font-weight:800;margin-top:4px">${fmt(yrRev)}</div>
+      <div style="font-size:12px;opacity:.7;margin-top:2px">gesamt: ${fmt(totalRev)}</div>
+    </div>
+    <div style="background:#F8FAFC;border-radius:16px;padding:14px">
+      <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px">Artikel</div>
+      <div style="font-size:28px;font-weight:800;color:var(--t1);margin-top:4px">${D.items.length}</div>
+      <div style="font-size:12px;color:var(--t3);margin-top:2px">Gesamtwert ${fmt(D.items.reduce((s,i)=>s+(i.price||0)*i.qty,0))}</div>
+    </div>
+    <div style="background:#F8FAFC;border-radius:16px;padding:14px">
+      <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px">Ø pro Verleih</div>
+      <div style="font-size:28px;font-weight:800;color:var(--t1);margin-top:4px">${validR.length?fmt(totalRev/validR.length):'–'}</div>
+      <div style="font-size:12px;color:var(--t3);margin-top:2px">Umsatz</div>
+    </div>
+  </div>
+  <div class="igroup shadow">
+    <div style="padding:12px 16px 6px;font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px">Umsatz letzte 12 Monate</div>
+    <div style="padding:8px 16px 14px">
+      <div style="display:flex;align-items:flex-end;gap:4px;height:72px">
+        ${months.map(m=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px">
+          <div style="width:100%;background:${m.rev>0?'var(--p)':'#E2E8F0'};border-radius:4px 4px 0 0;height:${Math.max(4,Math.round(m.rev/maxRev*60))}px;min-height:4px;transition:height .3s"></div>
+        </div>`).join('')}
+      </div>
+      <div style="display:flex;gap:4px;margin-top:4px">
+        ${months.map(m=>`<div style="flex:1;text-align:center;font-size:9px;color:var(--t3);font-weight:600">${m.lbl}</div>`).join('')}
+      </div>
+    </div>
+  </div>
+  ${itemRev.length?`<div class="igroup shadow">
+    <div style="padding:12px 16px 4px;font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px">Top Artikel · Umsatz</div>
+    ${itemRev.map((x,i)=>`<div class="list-row" style="${i===itemRev.length-1?'border:none':''}">
+      <div style="width:20px;font-size:13px;font-weight:800;color:var(--t3);flex-shrink:0">${i+1}</div>
+      <div style="flex:1;min-width:0"><div style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e(x.itm.name)}</div><div style="font-size:12px;color:var(--t3)">${x.cnt} Verleihe</div></div>
+      <div style="font-weight:700;color:var(--ok)">${fmt(x.rev)}</div>
+    </div>`).join('')}
+  </div>`:''}
+  ${itemCnt.length?`<div class="igroup shadow">
+    <div style="padding:12px 16px 8px;font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px">Top Artikel · Nachfrage</div>
+    ${itemCnt.map((x,i)=>`<div style="padding:6px 16px${i===itemCnt.length-1?'':';border-bottom:1px solid var(--sep)'}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${e(x.itm.name)}</div>
+        <div style="font-size:13px;font-weight:700;color:var(--p);flex-shrink:0;margin-left:8px">${x.cnt}×</div>
+      </div>
+      <div style="height:6px;background:#E2E8F0;border-radius:3px;overflow:hidden">
+        <div style="height:100%;width:${Math.round(x.cnt/maxCnt*100)}%;background:var(--p);border-radius:3px"></div>
+      </div>
+    </div>`).join('')}
+  </div>`:''}
+  <div style="height:4px"></div>`;
+}
+
 function renderMore(){
   const catColors=['#EF4444','#F97316','#F59E0B','#10B981','#3B82F6','#6366F1','#8B5CF6','#EC4899','#64748B'];
   let h=`<div style="background:linear-gradient(135deg,#1E3A8A,#2563EB,#3B82F6);padding:max(16px,env(safe-area-inset-top,16px)) 16px 20px">
