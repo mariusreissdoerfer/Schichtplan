@@ -266,13 +266,6 @@ input[type="date"].inp{-webkit-appearance:none;appearance:none;height:52px;box-s
         </svg>
         <span style="font-size:10px;font-weight:600">Verleih</span>
       </div>
-      <div class="nav-item" id="nav-warehouses" onclick="go('warehouses')">
-        <div class="nav-dot"></div>
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
-        </svg>
-        <span style="font-size:10px;font-weight:600">Lager</span>
-      </div>
       <div class="nav-item" id="nav-more" onclick="go('more')">
         <div class="nav-dot"></div>
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -525,17 +518,8 @@ function renderItems(){
               ${!itm.rent?`<span style="font-size:12px;color:var(--t3)">nicht verleihbar</span>`:''}
             </div>
           </div>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-        </div>
-        <div style="display:flex;border-top:1px solid var(--sep)">
-          <button onclick="openItemForm(${itm.id})" style="flex:1;padding:12px;background:none;border:none;font-size:14px;color:var(--t2);font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            Bearbeiten
-          </button>
-          <div style="width:1px;background:var(--sep)"></div>
-          <button onclick="delItem(${itm.id})" style="flex:1;padding:12px;background:none;border:none;font-size:14px;color:var(--err);font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
-            Löschen
+          <button onclick="event.stopPropagation();openItemForm(${itm.id})" style="width:36px;height:36px;flex-shrink:0;border-radius:10px;background:#F1F5F9;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t2)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           </button>
         </div>
       </div>`;
@@ -687,10 +671,11 @@ function openItemForm(id=null){
       </div>
     </div>
     <div class="field"><label class="lbl">Notizen</label><textarea class="inp" name="notes" rows="2" placeholder="Interne Notizen...">${e(itm?.notes||'')}</textarea></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-bottom:8px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-bottom:${id?'4':'8'}px">
       <button type="button" class="btn btn-s" onclick="closeModal()">Abbrechen</button>
       <button type="submit" class="btn btn-p">Speichern</button>
     </div>
+    ${id?`<button type="button" class="btn btn-d" style="width:100%;margin-top:0;padding-bottom:8px" onclick="closeModal();setTimeout(()=>delItem(${id}),360)">🗑 Artikel löschen</button>`:''}
   </div></form>`;
   openModal(itm?'Gegenstand bearbeiten':'Neuer Gegenstand',h);
 }
@@ -732,7 +717,7 @@ function renderRentals(){
   let h=`<div style="background:linear-gradient(135deg,#1E3A8A,#2563EB,#3B82F6);padding:max(16px,env(safe-area-inset-top,16px)) 16px 16px">
     <div style="display:flex;align-items:center;justify-content:space-between">
       <div style="font-size:22px;font-weight:800;color:#fff">Verleih</div>
-      <button onclick="openRentalStats()" style="background:rgba(255,255,255,.18);border:none;border-radius:10px;padding:7px 12px;cursor:pointer;display:flex;align-items:center;gap:6px;color:#fff;font-size:13px;font-weight:700">
+      <button onclick="openRentalStats()" style="background:rgba(255,255,255,.18);border:none;border-radius:10px;padding:7px 12px;margin-right:68px;cursor:pointer;display:flex;align-items:center;gap:6px;color:#fff;font-size:13px;font-weight:700">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
         Statistik
       </button>
@@ -910,7 +895,7 @@ function renderTimelineView(){
   let h=`<div style="background:linear-gradient(135deg,#1E3A8A,#2563EB,#3B82F6);padding:max(16px,env(safe-area-inset-top,16px)) 16px 16px">
     <div style="display:flex;align-items:center;justify-content:space-between">
       <div style="font-size:22px;font-weight:800;color:#fff">Verleih</div>
-      <button onclick="openRentalStats()" style="background:rgba(255,255,255,.18);border:none;border-radius:10px;padding:7px 12px;cursor:pointer;display:flex;align-items:center;gap:6px;color:#fff;font-size:13px;font-weight:700">
+      <button onclick="openRentalStats()" style="background:rgba(255,255,255,.18);border:none;border-radius:10px;padding:7px 12px;margin-right:68px;cursor:pointer;display:flex;align-items:center;gap:6px;color:#fff;font-size:13px;font-weight:700">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
         Statistik
       </button>
@@ -1508,6 +1493,18 @@ function renderMore(){
     <div style="font-size:22px;font-weight:800;color:#fff">Einstellungen</div>
   </div>
   <div style="padding:16px;display:flex;flex-direction:column;gap:20px" class="fadeUp">
+    <div>
+      <div class="sec-hdr" style="padding:0 0 10px">Navigation</div>
+      <div class="igroup shadow">
+        <div class="srow" style="border:none;cursor:pointer" onclick="go('warehouses')">
+          <div class="srow-icon" style="background:#EFF6FF">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+          </div>
+          <div style="flex:1;font-weight:600">Lagerhallen</div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+      </div>
+    </div>
     <div>
       <div class="sec-hdr" style="padding:0 0 10px">Kategorien</div>
       <div class="igroup shadow">
