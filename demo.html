@@ -137,8 +137,8 @@ input[type="date"].inp{-webkit-appearance:none;appearance:none;height:52px;box-s
 
 /* FAB */
 .fab{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px)+72px);right:20px;
-  z-index:30;width:56px;height:56px;border-radius:28px;background:var(--p);
-  color:#fff;border:none;box-shadow:0 4px 20px rgba(37,99,235,.5);
+  z-index:30;width:56px;height:56px;border-radius:28px;background:#16A34A;
+  color:#fff;border:none;box-shadow:0 4px 20px rgba(22,163,74,.5);
   font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;
   transition:transform .15s,box-shadow .15s}
 .fab:active{transform:scale(.92);box-shadow:0 2px 10px rgba(37,99,235,.4)}
@@ -280,7 +280,7 @@ input[type="date"].inp{-webkit-appearance:none;appearance:none;height:52px;box-s
 // ── DATA ─────────────────────────────────────────────────────────────────────
 const DEMO={
   categories:[
-    {id:1,name:'Zelte & Unterkünfte',color:'#F59E0B',emoji:'⛺'},
+    {id:1,name:'Zelte',color:'#F59E0B',emoji:'⛺'},
     {id:2,name:'Möbel',color:'#10B981',emoji:'🪑'},
     {id:3,name:'Elektro',color:'#3B82F6',emoji:'⚡'},
     {id:4,name:'Küche & Catering',color:'#EF4444',emoji:'🍳'},
@@ -1142,18 +1142,19 @@ function rfCalcAll(){
   if(!s||!e_||e_<s){if(pb)pb.style.display='none';return;}
   if(pt==='free'){if(pb&&pv){pb.style.display='flex';pv.textContent=fmt(0);}return;}
   const isMember=document.getElementById('rf-member')?.classList.contains('on');
-  let total=0,hasPrice=false;
+  const baseFeeOn=document.getElementById('rf-basefee')?.classList.contains('on');
+  const numDays=days(s,e_);
+  let linesTotal=0,hasItemPrice=false;
   rfLines.forEach(l=>{
     if(!l.iid)return;
     const itm=item(l.iid);if(!itm)return;
     const qty=l.qty||1;
-    if(itm.day||itm.dayMember){
-      const p=isMember&&itm.dayMember?itm.dayMember:itm.day;
-      if(p){total+=p*days(s,e_)*qty;hasPrice=true;}
-    }
+    const p=isMember&&itm.dayMember?itm.dayMember:itm.day;
+    if(p){linesTotal+=p*numDays*qty;hasItemPrice=true;}
   });
-  const baseFeeOn=document.getElementById('rf-basefee')?.classList.contains('on');
-  if(baseFeeOn&&D.settings?.baseFee&&pt!=='free'){total+=(D.settings.baseFee||0);hasPrice=true;}
+  const fee=baseFeeOn&&D.settings?.baseFee?D.settings.baseFee:0;
+  const total=linesTotal+fee;
+  const hasPrice=hasItemPrice||(fee>0);
   if(hasPrice&&pb&&pv){pb.style.display='flex';pv.textContent=fmt(total);}
   else if(pb)pb.style.display='none';
 }
@@ -1199,13 +1200,14 @@ function saveRental(ev,id){
   if(pt==='custom') total=parseFloat(f.total?.value)||null;
   else if(pt==='free') total=0;
   else {
-    total=0;
-    lines.forEach(l=>{
-      const itm=item(l.iid);const qty=l.qty||1;
-      const p=isMember&&itm?.dayMember?itm.dayMember:itm?.day;
-      if(p)total+=p*days(s,e_)*qty;
-    });
-    if(baseFeeEnabled&&D.settings?.baseFee) total=(total||0)+(D.settings.baseFee||0);
+    const numDays=days(s,e_);
+    total=lines.reduce((sum,l)=>{
+      const itm=item(l.iid);if(!itm)return sum;
+      const qty=l.qty||1;
+      const p=isMember&&itm.dayMember?itm.dayMember:itm.day;
+      return sum+(p?p*numDays*qty:0);
+    },0);
+    if(baseFeeEnabled&&D.settings?.baseFee) total+=D.settings.baseFee;
     if(total===0)total=null;
   }
   const data={lines,isMember,baseFeeEnabled,name:f.bname.value.trim(),phone:f.bphone.value.trim(),email:f.bemail.value.trim(),addr:f.baddr.value.trim(),s,e:e_,status:f.status?.value||'reserviert',pt,total,notes:f.notes.value.trim()};
@@ -1465,7 +1467,7 @@ function renderMore(){
 function openCatForm(id=null){
   const c=id?D.categories.find(x=>x.id===id):null;
   const colors=['#EF4444','#F97316','#F59E0B','#10B981','#22C55E','#3B82F6','#6366F1','#8B5CF6','#EC4899','#64748B'];
-  const emojis=['⛺','🪑','⚡','🍳','📦','🔧','🎪','🚛','🎭','📋'];
+  const emojis=['⛺','🪑','⚡','🍳','📦','🔧','🎪','🚛','🎭','📋','🎉','🎸','🔊','💡','🪣','🏋️','🛖','🪵','🌡️','🧯','🪜','🛒','🧲','🔌','🪤','🏆','🧹','🚿','🛁','🔑'];
   let h=`<form onsubmit="saveCat(event,${id||'null'})"><div style="display:flex;flex-direction:column;gap:14px">
     <div class="field"><label class="lbl">Name *</label><input class="inp" name="name" required placeholder="z.B. Werkzeug" value="${e(c?.name||'')}"></div>
     <div><label class="lbl">Farbe</label>
