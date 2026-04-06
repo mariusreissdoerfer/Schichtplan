@@ -319,7 +319,8 @@ const DEMO={
     {id:2,lines:[{iid:2,qty:2}],name:'Familie Müller',phone:'0170 9876543',email:'',addr:'Gartenweg 3, 12345 Musterstadt',s:'2026-04-05',e:'2026-04-06',status:'reserviert',pt:'weekend',total:30,notes:'Geburtstagsfeier im Garten'},
     {id:3,lines:[{iid:4,qty:2}],name:'Brauerei Hopfen GmbH',phone:'089 445566',email:'events@brauerei-hopfen.de',addr:'Brauereiweg 1, 80333 München',s:'2026-04-10',e:'2026-04-12',status:'reserviert',pt:'daily',total:30,notes:''},
     {id:4,lines:[{iid:3,qty:1}],name:'Schulverein GS Muster',phone:'',email:'sv@gs-muster.de',addr:'Schulstraße 1, 12345 Musterstadt',s:'2026-03-20',e:'2026-03-21',status:'zurückgegeben',pt:'weekend',total:30,notes:'Frühlingsfest'},
-  ]
+  ],
+  settings:{baseFee:15,vereinName:'Bürgerverein Musterstadt e.V.',vereinAddr:'Musterstraße 1, 12345 Musterstadt'}
 };
 
 // ── STATE ────────────────────────────────────────────────────────────────────
@@ -332,6 +333,7 @@ function migrateRentals(d){
   (d.rentals||[]).forEach(r=>{
     if(!r.lines&&r.iid){r.lines=[{iid:r.iid,qty:r.qty||1}];delete r.iid;delete r.qty;}
   });
+  if(!d.settings)d.settings={baseFee:15,vereinName:'Bürgerverein Musterstadt e.V.',vereinAddr:'Musterstraße 1, 12345 Musterstadt'};
 }
 let curTab='dashboard', itemSearch='', itemCat=0, rentalSeg='alle', rentalView='list', _nid=0;
 function nid(){ if(!_nid){ const all=[...D.items,...D.categories,...D.warehouses,...D.locations,...D.rentals]; _nid=all.length?Math.max(...all.map(x=>x.id))+1:100; } return _nid++; }
@@ -515,6 +517,8 @@ function renderItems(){
               <span style="font-size:13px;font-weight:700;color:var(--t1)">${itm.qty}×</span>
               ${w?`<span style="font-size:12px;color:var(--t3)">📍 ${e(w.name)}</span>`:''}
               ${itm.rent&&itm.day?`<span style="font-size:12px;color:var(--p);font-weight:600">💶 ${fmt(itm.day)}/Tag</span>`:''}
+              ${itm.dayMember?`<span style="font-size:12px;color:#0891B2;font-weight:600">👤 ${fmt(itm.dayMember)}/Tag</span>`:''}
+              ${(()=>{const bw=buchwert(itm.price,itm.acquired,itm.lifespan);return bw!==null?`<span style="font-size:12px;color:var(--t3)">BW: ${fmt(bw)}</span>`:''})()}
               ${!itm.rent?`<span style="font-size:12px;color:var(--t3)">nicht verleihbar</span>`:''}
             </div>
           </div>
@@ -554,21 +558,16 @@ function openItemDetail(id){
   </div>`:(itm.invnr?`<div class="igroup" style="margin-bottom:14px">
     <div class="list-row" style="border:none"><div style="flex:1;font-size:14px;color:var(--t2)">Inventarnummer</div><div style="font-weight:600;font-size:14px">${e(itm.invnr)}</div></div>
   </div>`:'');})()}
-  ${itm.rent&&(itm.day||itm.wknd||itm.dayMember||itm.wkndMember)?`<div class="igroup" style="margin-bottom:14px">
+  ${itm.rent&&(itm.day||itm.dayMember)?`<div class="igroup" style="margin-bottom:14px">
     <div style="padding:12px 16px 8px;font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px">Mietpreise</div>
     <div style="padding:0 16px 12px">
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;font-size:13px">
         <div style="color:var(--t3);font-weight:600;padding-bottom:6px"></div>
         <div style="color:var(--t3);font-weight:600;text-align:center;padding-bottom:6px">Standard</div>
         <div style="color:#0891B2;font-weight:600;text-align:center;padding-bottom:6px">Mitglied</div>
-        ${itm.day||itm.dayMember?`
         <div style="color:var(--t2);padding:6px 0;border-top:1px solid var(--sep)">Tagespreis</div>
         <div style="font-weight:700;color:var(--p);text-align:center;padding:6px 0;border-top:1px solid var(--sep)">${itm.day?fmt(itm.day):'–'}</div>
-        <div style="font-weight:700;color:#0891B2;text-align:center;padding:6px 0;border-top:1px solid var(--sep)">${itm.dayMember?fmt(itm.dayMember):'–'}</div>`:''}
-        ${itm.wknd||itm.wkndMember?`
-        <div style="color:var(--t2);padding:6px 0;border-top:1px solid var(--sep)">Wochenende</div>
-        <div style="font-weight:700;color:#7C3AED;text-align:center;padding:6px 0;border-top:1px solid var(--sep)">${itm.wknd?fmt(itm.wknd):'–'}</div>
-        <div style="font-weight:700;color:#0891B2;text-align:center;padding:6px 0;border-top:1px solid var(--sep)">${itm.wkndMember?fmt(itm.wkndMember):'–'}</div>`:''}
+        <div style="font-weight:700;color:#0891B2;text-align:center;padding:6px 0;border-top:1px solid var(--sep)">${itm.dayMember?fmt(itm.dayMember):'–'}</div>
       </div>
     </div>
   </div>`:''}
@@ -658,15 +657,9 @@ function openItemForm(id=null){
         <div class="tgl${itm?.rent!==false?' on':''}" id="rentgl" onclick="this.classList.toggle('on');document.getElementById('rentflds').style.display=this.classList.contains('on')?'block':'none'"></div>
       </div>
       <div id="rentflds" style="display:${itm?.rent!==false?'block':'none'};margin-top:14px">
-        <div style="font-size:12px;font-weight:600;color:var(--t3);margin-bottom:8px">Standardpreis</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
-          <div class="field"><label class="lbl">Tagespreis €</label><input class="inp" type="number" step="0.01" id="day-inp" name="day" value="${itm?.day||''}"></div>
-          <div class="field"><label class="lbl">Wochenende €</label><input class="inp" type="number" step="0.01" name="wknd" value="${itm?.wknd||''}"></div>
-        </div>
-        <div style="font-size:12px;font-weight:600;color:#0891B2;margin-bottom:8px">Mitgliederpreis</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-          <div class="field"><label class="lbl">Tagespreis €</label><input class="inp" type="number" step="0.01" name="dayMember" value="${itm?.dayMember||''}"></div>
-          <div class="field"><label class="lbl">Wochenende €</label><input class="inp" type="number" step="0.01" name="wkndMember" value="${itm?.wkndMember||''}"></div>
+          <div class="field"><label class="lbl">Tagespreis €</label><input class="inp" type="number" step="0.01" id="day-inp" name="day" value="${itm?.day||''}"></div>
+          <div class="field"><label class="lbl">Mitglieder €/Tag</label><input class="inp" type="number" step="0.01" name="dayMember" value="${itm?.dayMember||''}"></div>
         </div>
       </div>
     </div>
@@ -695,7 +688,7 @@ function ifUpdateBw(){
 function saveItem(e_,id){
   e_.preventDefault();const f=e_.target;
   const rentable=document.getElementById('rentgl').classList.contains('on');
-  const data={name:f.name.value.trim(),desc:f.desc.value.trim(),cid:parseInt(f.cid.value)||null,qty:parseInt(f.qty.value)||1,cond:f.cond.value,price:parseFloat(f.price.value)||null,invnr:f.invnr.value.trim(),acquired:f.acquired.value||null,lifespan:parseInt(f.lifespan.value)||null,rent:rentable,day:rentable?(parseFloat(f.day.value)||null):null,wknd:rentable?(parseFloat(f.wknd.value)||null):null,dayMember:rentable?(parseFloat(f.dayMember.value)||null):null,wkndMember:rentable?(parseFloat(f.wkndMember.value)||null):null,lid:parseInt(f.lid.value)||null,notes:f.notes.value.trim()};
+  const data={name:f.name.value.trim(),desc:f.desc.value.trim(),cid:parseInt(f.cid.value)||null,qty:parseInt(f.qty.value)||1,cond:f.cond.value,price:parseFloat(f.price.value)||null,invnr:f.invnr.value.trim(),acquired:f.acquired.value||null,lifespan:parseInt(f.lifespan.value)||null,rent:rentable,day:rentable?(parseFloat(f.day.value)||null):null,dayMember:rentable?(parseFloat(f.dayMember.value)||null):null,lid:parseInt(f.lid.value)||null,notes:f.notes.value.trim()};
   if(!data.name){toast('Name ist Pflichtfeld','err');return;}
   if(id){Object.assign(item(id),data);toast('Gespeichert');}
   else{D.items.push({id:nid(),...data});toast('Angelegt');}
@@ -1181,9 +1174,17 @@ function openRentalForm(id=null,prefillIid=null){
         <div class="tgl${r?.isMember?' on':''}" id="rf-member" onclick="this.classList.toggle('on');rfCalcAll()"></div>
       </div>
     </div>
+    <div class="igroup" style="padding:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-weight:600;font-size:15px">Grundgebühr</div>
+          <div style="font-size:13px;color:var(--t2)">${D.settings?.baseFee?fmt(D.settings.baseFee)+' Bearbeitungsgebühr':'Nicht festgelegt'}</div>
+        </div>
+        <div class="tgl${r?.baseFeeEnabled===false?'':' on'}" id="rf-basefee" onclick="this.classList.toggle('on');rfCalcAll()"></div>
+      </div>
+    </div>
     <div class="field"><label class="lbl">Preismodell</label><select class="inp" name="pt" id="rf-pt" onchange="rfCalcAll()">
-      <option value="daily"${(!r||r.pt==='daily')?' selected':''}>Tagespreis</option>
-      <option value="weekend"${r?.pt==='weekend'?' selected':''}>Wochenende</option>
+      <option value="daily"${(!r||r.pt==='daily'||r.pt==='weekend')?' selected':''}>Tagespreis</option>
       <option value="custom"${r?.pt==='custom'?' selected':''}>Individuell</option>
       <option value="free"${r?.pt==='free'?' selected':''}>Kostenlos</option>
     </select></div>
@@ -1231,14 +1232,13 @@ function rfCalcAll(){
     if(!l.iid)return;
     const itm=item(l.iid);if(!itm)return;
     const qty=l.qty||1;
-    if(pt==='weekend'){
-      const p=isMember&&itm.wkndMember?itm.wkndMember:itm.wknd;
-      if(p){total+=p*qty;hasPrice=true;}
-    } else if(itm.day||itm.dayMember){
+    if(itm.day||itm.dayMember){
       const p=isMember&&itm.dayMember?itm.dayMember:itm.day;
       if(p){total+=p*days(s,e_)*qty;hasPrice=true;}
     }
   });
+  const baseFeeOn=document.getElementById('rf-basefee')?.classList.contains('on');
+  if(baseFeeOn&&D.settings?.baseFee&&pt!=='free'){total+=(D.settings.baseFee||0);hasPrice=true;}
   if(hasPrice&&pb&&pv){pb.style.display='flex';pv.textContent=fmt(total);}
   else if(pb)pb.style.display='none';
 }
@@ -1279,6 +1279,7 @@ function saveRental(ev,id){
   }
   const pt=f.pt.value;
   const isMember=document.getElementById('rf-member')?.classList.contains('on')||false;
+  const baseFeeEnabled=document.getElementById('rf-basefee')?.classList.contains('on')!==false;
   let total=null;
   if(pt==='custom') total=parseFloat(f.total?.value)||null;
   else if(pt==='free') total=0;
@@ -1286,17 +1287,13 @@ function saveRental(ev,id){
     total=0;
     lines.forEach(l=>{
       const itm=item(l.iid);const qty=l.qty||1;
-      if(pt==='weekend'){
-        const p=isMember&&itm?.wkndMember?itm.wkndMember:itm?.wknd;
-        if(p)total+=p*qty;
-      } else {
-        const p=isMember&&itm?.dayMember?itm.dayMember:itm?.day;
-        if(p)total+=p*days(s,e_)*qty;
-      }
+      const p=isMember&&itm?.dayMember?itm.dayMember:itm?.day;
+      if(p)total+=p*days(s,e_)*qty;
     });
+    if(baseFeeEnabled&&D.settings?.baseFee) total=(total||0)+(D.settings.baseFee||0);
     if(total===0)total=null;
   }
-  const data={lines,isMember,name:f.bname.value.trim(),phone:f.bphone.value.trim(),email:f.bemail.value.trim(),addr:f.baddr.value.trim(),s,e:e_,status:f.status?.value||'reserviert',pt,total,notes:f.notes.value.trim()};
+  const data={lines,isMember,baseFeeEnabled,name:f.bname.value.trim(),phone:f.bphone.value.trim(),email:f.bemail.value.trim(),addr:f.baddr.value.trim(),s,e:e_,status:f.status?.value||'reserviert',pt,total,notes:f.notes.value.trim()};
   if(!data.name){toast('Name ist Pflichtfeld','err');return;}
   if(id){const existing=D.rentals.find(r=>r.id===id);delete existing.iid;delete existing.qty;Object.assign(existing,data);toast('Gespeichert');}
   else{D.rentals.push({id:nid(),...data});toast('Verleih angelegt');}
