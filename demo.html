@@ -25,12 +25,12 @@
   --r:16px;
 }
 *{-webkit-tap-highlight-color:transparent;box-sizing:border-box;-webkit-font-smoothing:antialiased}
-html{height:-webkit-fill-available}body{height:100vh;height:-webkit-fill-available;display:flex;flex-direction:column;overflow:clip;margin:0;background:var(--bg)}
+html{height:-webkit-fill-available}body{height:100vh;height:-webkit-fill-available;display:flex;flex-direction:column;overflow:hidden;margin:0;background:var(--bg)}
 body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",sans-serif;color:var(--t1);overscroll-behavior:none}
 input,select,textarea,button{font-family:inherit}
 input,select,textarea{font-size:16px!important;color:var(--t1)}
 ::-webkit-scrollbar{display:none}
-#content{flex:1;overflow-y:scroll;overflow-x:hidden;-webkit-overflow-scrolling:touch;background:var(--bg);padding-bottom:calc(env(safe-area-inset-bottom,0px)+72px);opacity:1}
+#content{height:100%;overflow-y:scroll;overflow-x:hidden;-webkit-overflow-scrolling:touch;background:var(--bg);padding-bottom:80px;opacity:1}
 
 /* Cards */
 .c{background:var(--card);border-radius:var(--r);overflow:hidden}
@@ -136,12 +136,11 @@ input[type="date"].inp{-webkit-appearance:none;appearance:none;height:52px;box-s
   text-transform:uppercase;padding:24px 20px 8px;line-height:1}
 
 /* FAB */
-.fab{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px)+72px);right:20px;
+.fab{position:absolute;bottom:16px;right:20px;
   z-index:30;width:56px;height:56px;border-radius:28px;background:#16A34A;
   color:#fff;border:none;box-shadow:0 4px 20px rgba(22,163,74,.5);
   font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;
-  transition:transform .15s,box-shadow .15s;
-  -webkit-transform:translateZ(0);transform:translateZ(0)}
+  transition:transform .15s,box-shadow .15s}
 .fab:active{transform:scale(.92);box-shadow:0 2px 10px rgba(37,99,235,.4)}
 
 /* Header */
@@ -239,8 +238,17 @@ input[type="date"].inp{-webkit-appearance:none;appearance:none;height:52px;box-s
 </div>
 
 <!-- APP SHELL: body IS the flex container -->
-<!-- CONTENT -->
-<div id="content"></div>
+<!-- CONTENT WRAPPER (relative so FAB can be absolute within it) -->
+<div style="position:relative;flex:1;min-height:0;overflow:hidden">
+<div id="content" style="height:100%"></div>
+
+<!-- FAB -->
+<button class="fab" id="fab" onclick="fabAction()" title="Neu hinzufügen">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+  </svg>
+</button>
+</div>
 
 <!-- BOTTOM NAV -->
 <div style="background:#fff;border-top:1px solid var(--sep);flex-shrink:0;padding-bottom:env(safe-area-inset-bottom,0px)">
@@ -269,13 +277,6 @@ input[type="date"].inp{-webkit-appearance:none;appearance:none;height:52px;box-s
       </div>
     </div>
 </div>
-
-<!-- FAB -->
-<button class="fab" id="fab" onclick="fabAction()" title="Neu hinzufügen">
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-  </svg>
-</button>
 
 <script>
 // ── DATA ─────────────────────────────────────────────────────────────────────
