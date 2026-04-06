@@ -244,14 +244,7 @@ input[type="date"].inp{-webkit-appearance:none;appearance:none;height:52px;box-s
 <!-- BOTTOM NAV -->
 <div style="background:#fff;border-top:1px solid var(--sep);flex-shrink:0;padding-bottom:env(safe-area-inset-bottom,0px)">
     <div style="display:flex;height:56px">
-      <div class="nav-item active" id="nav-dashboard" onclick="go('dashboard')">
-        <div class="nav-dot"></div>
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
-        </svg>
-        <span style="font-size:10px;font-weight:600">Übersicht</span>
-      </div>
-      <div class="nav-item" id="nav-items" onclick="go('items')">
+      <div class="nav-item active" id="nav-items" onclick="go('items')">
         <div class="nav-dot"></div>
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
@@ -389,94 +382,14 @@ function fabAction(){ curTab==='items'?openItemForm():openRentalForm(); }
 function render(tab){
   const c=document.getElementById('content');
   if(!c)return;
-  if(tab==='dashboard') c.innerHTML=renderDash();
-  else if(tab==='items') c.innerHTML=renderItems();
+  if(tab==='items') c.innerHTML=renderItems();
   else if(tab==='rentals'){c.innerHTML=renderRentals();document.getElementById('fab').style.display=rentalView==='timeline'?'none':'flex';}
   else if(tab==='warehouses') c.innerHTML=renderWH();
 
   else if(tab==='more') c.innerHTML=renderMore();
 }
 
-// ── DASHBOARD ────────────────────────────────────────────────────────────────
-function renderDash(){
-  const active=D.rentals.filter(r=>r.status==='ausgeliehen');
-  const res=D.rentals.filter(r=>r.status==='reserviert');
-  const totalQty=D.items.reduce((a,i)=>a+i.qty,0);
-  const totalVal=D.items.reduce((a,i)=>a+(i.price||0)*i.qty,0);
-  const today=new Date().toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'});
 
-  let h=`<div style="background:linear-gradient(135deg,#1E3A8A,#2563EB,#3B82F6);padding:max(16px,env(safe-area-inset-top,16px)) 20px 24px">
-    <div style="font-size:13px;color:rgba(255,255,255,.7);font-weight:500;margin-bottom:2px">${e(today)}</div>
-    <div style="font-size:28px;font-weight:800;color:#fff;letter-spacing:-.5px">Vereinsinventar</div>
-    <div style="font-size:14px;color:rgba(255,255,255,.7);margin-top:2px">Demo-Version</div>
-  </div>
-  <div style="padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:12px" class="fadeUp">
-    <div class="stat-card shadow">
-      <div class="stat-icon" style="background:#EFF6FF"><span style="font-size:20px">📦</span></div>
-      <div class="stat-val" style="color:var(--p)">${D.items.length}</div>
-      <div class="stat-lbl">Gegenstände</div>
-      <div class="stat-sub">${totalQty} Einheiten</div>
-    </div>
-    <div class="stat-card shadow">
-      <div class="stat-icon" style="background:#DBEAFE"><span style="font-size:20px">📤</span></div>
-      <div class="stat-val" style="color:#7C3AED">${active.length}</div>
-      <div class="stat-lbl">Ausgeliehen</div>
-      <div class="stat-sub">${res.length} reserviert</div>
-    </div>
-    <div class="stat-card shadow">
-      <div class="stat-icon" style="background:#DCFCE7"><span style="font-size:20px">🏭</span></div>
-      <div class="stat-val" style="color:var(--ok)">${D.warehouses.length}</div>
-      <div class="stat-lbl">Lagerhallen</div>
-      <div class="stat-sub">${D.locations.length} Lagerplätze</div>
-    </div>
-    <div class="stat-card shadow" onclick="go('items')" style="cursor:pointer">
-      <div class="stat-icon" style="background:#FEF3C7"><span style="font-size:20px">💶</span></div>
-      <div class="stat-val" style="color:var(--warn);font-size:20px">${totalVal>0?fmt(totalVal):'–'}</div>
-      <div class="stat-lbl">Inventarwert</div>
-      <div class="stat-sub">Beschaffungswerte</div>
-    </div>
-  </div>`;
-
-  if(active.length){
-    h+=`<div class="sec-hdr">🔴 Aktuell ausgeliehen</div><div style="padding:0 16px" class="fadeUp"><div class="igroup shadow">`;
-    active.forEach((r,i)=>{
-      h+=`<div class="list-row" style="${i<active.length-1?'':'border:none'}" onclick="go('rentals')">
-        <div style="width:10px;height:40px;border-radius:5px;background:${statusCol(r.status)};flex-shrink:0"></div>
-        <div style="flex:1;min-width:0">
-          <div style="font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e(rItemNames(r))}</div>
-          <div style="font-size:13px;color:var(--t2);margin-top:1px">${e(r.name)}</div>
-        </div>
-        <div style="text-align:right;flex-shrink:0">
-          <span class="badge" style="background:${statusBg(r.status)};color:${statusCol(r.status)}">${r.status}</span>
-          <div style="font-size:12px;color:var(--t3);margin-top:3px">bis ${fdate(r.e)}</div>
-        </div>
-      </div>`;
-    });
-    h+=`</div></div>`;
-  }
-  if(res.length){
-    h+=`<div class="sec-hdr">🟡 Bevorstehende Reservierungen</div><div style="padding:0 16px" class="fadeUp"><div class="igroup shadow">`;
-    res.forEach((r,i)=>{
-      h+=`<div class="list-row" style="${i<res.length-1?'':'border:none'}" onclick="go('rentals')">
-        <div style="width:10px;height:40px;border-radius:5px;background:${statusCol(r.status)};flex-shrink:0"></div>
-        <div style="flex:1;min-width:0">
-          <div style="font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e(rItemNames(r))}</div>
-          <div style="font-size:13px;color:var(--t2);margin-top:1px">${e(r.name)}</div>
-        </div>
-        <div style="text-align:right;flex-shrink:0">
-          <span class="badge" style="background:${statusBg(r.status)};color:${statusCol(r.status)}">${r.status}</span>
-          <div style="font-size:12px;color:var(--t3);margin-top:3px">${fdate(r.s)}</div>
-        </div>
-      </div>`;
-    });
-    h+=`</div></div>`;
-  }
-  if(!active.length&&!res.length){
-    h+=`<div class="empty-state fadeUp"><div class="empty-icon">✅</div><div class="empty-text">Alles ruhig</div><div class="empty-sub">Keine aktiven oder bevorstehenden Verleihe</div></div>`;
-  }
-  h+=`<div style="height:8px"></div>`;
-  return h;
-}
 
 // ── ITEMS PAGE ───────────────────────────────────────────────────────────────
 function renderItems(){
@@ -1588,7 +1501,7 @@ function delCat(id){
 }
 function resetDemo(){
   confirm_('Alle Daten auf Demo-Zustand zurücksetzen?',()=>{
-    D=JSON.parse(JSON.stringify(DEMO));_nid=0;save();toast('Demo-Daten zurückgesetzt');go('dashboard');
+    D=JSON.parse(JSON.stringify(DEMO));_nid=0;save();toast('Demo-Daten zurückgesetzt');go('items');
   });
 }
 
@@ -1709,7 +1622,7 @@ function printRentalSlip(id){
 }
 
 // ── INIT ─────────────────────────────────────────────────────────────────────
-go('dashboard');
+go('items');
 </script>
 </body>
 </html>
