@@ -1132,13 +1132,9 @@ function openRentalForm(id=null,prefillIid=null){
       <option value="custom"${r?.pt==='custom'?' selected':''}>Individuell</option>
       <option value="free"${r?.pt==='free'?' selected':''}>Kostenlos</option>
     </select></div>
+    <div id="rf-custom" style="display:none" class="field"><label class="lbl">Gesamtpreis (€)</label><input class="inp" type="number" step="0.01" name="total" value="${r?.total||''}"></div>
     <div id="rf-breakdown"></div>
     <div id="rf-avail" style="display:none;border-radius:12px;padding:12px 14px;font-size:14px;font-weight:600"></div>
-    <div id="rf-price-box" style="display:none;background:#EFF6FF;border-radius:12px;padding:12px 14px;align-items:center;justify-content:space-between">
-      <span style="font-size:14px;color:#1D4ED8">Berechneter Preis</span>
-      <span id="rf-price-val" style="font-size:20px;font-weight:800;color:#1D4ED8"></span>
-    </div>
-    <div id="rf-custom" style="display:none" class="field"><label class="lbl">Gesamtpreis (€)</label><input class="inp" type="number" step="0.01" name="total" value="${r?.total||''}"></div>
     ${r?`<div class="field"><label class="lbl">Status</label><select class="inp" name="status">
       ${['reserviert','ausgeliehen','zurückgegeben','storniert'].map(s=>`<option${r.status===s?' selected':''}>${s}</option>`).join('')}
     </select></div>`:''}
@@ -1163,30 +1159,10 @@ function openRentalForm(id=null,prefillIid=null){
 
 function rfCalcAll(){
   const sd=document.getElementById('rf-sd'),ed=document.getElementById('rf-ed'),pt_el=document.getElementById('rf-pt');
-  const pb=document.getElementById('rf-price-box'),pv=document.getElementById('rf-price-val'),cp=document.getElementById('rf-custom');
+  const cp=document.getElementById('rf-custom');
   if(!sd||!ed||!pt_el)return;
   const pt=pt_el.value;
-  if(pt==='custom'){if(pb)pb.style.display='none';if(cp)cp.style.display='block';return;}
-  if(cp)cp.style.display='none';
-  const s=sd.value,e_=ed.value;
-  if(!s||!e_||e_<s){if(pb)pb.style.display='none';return;}
-  if(pt==='free'){if(pb&&pv){pb.style.display='flex';pv.textContent=fmt(0);}return;}
-  const isMember=document.getElementById('rf-member')?.classList.contains('on');
-  const baseFeeOn=document.getElementById('rf-basefee')?.classList.contains('on');
-  const numDays=days(s,e_);
-  let linesTotal=0,hasItemPrice=false;
-  rfLines.forEach(l=>{
-    if(!l.iid)return;
-    const itm=item(l.iid);if(!itm)return;
-    const qty=l.qty||1;
-    const p=isMember&&itm.dayMember?itm.dayMember:itm.day;
-    if(p){linesTotal+=p*numDays*qty;hasItemPrice=true;}
-  });
-  const fee=baseFeeOn&&D.settings?.baseFee?D.settings.baseFee:0;
-  const total=linesTotal+fee;
-  const hasPrice=hasItemPrice||(fee>0);
-  if(hasPrice&&pb&&pv){pb.style.display='flex';pv.textContent=fmt(total);}
-  else if(pb)pb.style.display='none';
+  if(cp)cp.style.display=pt==='custom'?'block':'none';
   rfUpdateBreakdown();
 }
 
