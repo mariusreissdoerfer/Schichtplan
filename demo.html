@@ -25,12 +25,12 @@
   --r:16px;
 }
 *{-webkit-tap-highlight-color:transparent;box-sizing:border-box;-webkit-font-smoothing:antialiased}
-html{height:-webkit-fill-available}body{height:100vh;height:-webkit-fill-available;display:flex;flex-direction:column;margin:0;background:var(--bg)}
+html{height:-webkit-fill-available}body{height:100vh;height:-webkit-fill-available;display:flex;flex-direction:column;overflow:hidden;margin:0;background:var(--bg)}
 body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",sans-serif;color:var(--t1);overscroll-behavior:none}
 input,select,textarea,button{font-family:inherit}
 input,select,textarea{font-size:16px!important;color:var(--t1)}
 ::-webkit-scrollbar{display:none}
-#content{flex:1;min-height:0;overflow-y:scroll;overflow-x:hidden;-webkit-overflow-scrolling:touch;background:var(--bg);padding-bottom:80px;opacity:1}
+#content{flex:1;min-height:0;overflow-y:scroll;overflow-x:hidden;-webkit-overflow-scrolling:touch;background:var(--bg);padding-bottom:16px;opacity:1}
 
 /* Cards */
 .c{background:var(--card);border-radius:var(--r);overflow:hidden}
@@ -135,13 +135,6 @@ input[type="date"].inp{-webkit-appearance:none;appearance:none;height:52px;box-s
 .sec-hdr{font-size:13px;font-weight:700;color:var(--t3);letter-spacing:.6px;
   text-transform:uppercase;padding:24px 20px 8px;line-height:1}
 
-/* FAB */
-.fab{position:fixed;bottom:calc(56px + env(safe-area-inset-bottom,0px) + 12px);right:20px;
-  z-index:30;width:56px;height:56px;border-radius:28px;background:#16A34A;
-  color:#fff;border:none;box-shadow:0 4px 20px rgba(22,163,74,.5);
-  font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;
-  transition:transform .15s,box-shadow .15s}
-.fab:active{transform:scale(.92);box-shadow:0 2px 10px rgba(37,99,235,.4)}
 
 /* Header */
 .hdr{position:sticky;top:0;z-index:20;
@@ -269,12 +262,6 @@ input[type="date"].inp{-webkit-appearance:none;appearance:none;height:52px;box-s
     </div>
 </div>
 
-<!-- FAB (last child of body = safest for iOS position:fixed) -->
-<button class="fab" id="fab" onclick="fabAction()" title="Neu hinzufügen">
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-  </svg>
-</button>
 
 <script>
 // ── DATA ─────────────────────────────────────────────────────────────────────
@@ -372,7 +359,6 @@ function go(tab){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   curTab=tab;
   document.getElementById(`nav-${tab}`)?.classList.add('active');
-  document.getElementById('fab').style.display=(['items','rentals'].includes(tab))?'flex':'none';
   render(tab);
   const c=document.getElementById('content');if(c)c.scrollTop=0;
 }
@@ -383,7 +369,7 @@ function render(tab){
   const c=document.getElementById('content');
   if(!c)return;
   if(tab==='items') c.innerHTML=renderItems();
-  else if(tab==='rentals'){c.innerHTML=renderRentals();document.getElementById('fab').style.display=rentalView==='timeline'?'none':'flex';}
+  else if(tab==='rentals'){c.innerHTML=renderRentals();}
   else if(tab==='warehouses') c.innerHTML=renderWH();
 
   else if(tab==='more') c.innerHTML=renderMore();
@@ -398,7 +384,12 @@ function renderItems(){
     return ms&&(!itemCat||i.cid===itemCat);
   });
   let h=`<div style="background:linear-gradient(135deg,#1E3A8A,#2563EB,#3B82F6);padding:max(16px,env(safe-area-inset-top,16px)) 16px 20px">
-    <div style="font-size:22px;font-weight:800;color:#fff;margin-bottom:12px">Inventar</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div style="font-size:22px;font-weight:800;color:#fff">Inventar</div>
+      <button onclick="openItemForm()" style="width:36px;height:36px;border-radius:18px;background:rgba(255,255,255,0.25);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+    </div>
     <div class="search-wrap">
       <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input class="inp search-inp" id="item-search" placeholder="Suchen..." value="${e(itemSearch)}" oninput="itemSearch=this.value;render('items')" style="background:rgba(255,255,255,.95)">
@@ -623,10 +614,15 @@ function renderRentals(){
   let h=`<div style="background:linear-gradient(135deg,#1E3A8A,#2563EB,#3B82F6);padding:max(16px,env(safe-area-inset-top,16px)) 16px 16px">
     <div style="display:flex;align-items:center;justify-content:space-between">
       <div style="font-size:22px;font-weight:800;color:#fff">Verleih</div>
-      <button onclick="openRentalStats()" style="background:rgba(255,255,255,.18);border:none;border-radius:10px;padding:7px 12px;margin-right:68px;cursor:pointer;display:flex;align-items:center;gap:6px;color:#fff;font-size:13px;font-weight:700">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-        Statistik
-      </button>
+      <div style="display:flex;align-items:center;gap:10px">
+        <button onclick="openRentalStats()" style="background:rgba(255,255,255,.18);border:none;border-radius:10px;padding:7px 12px;cursor:pointer;display:flex;align-items:center;gap:6px;color:#fff;font-size:13px;font-weight:700">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          Statistik
+        </button>
+        <button onclick="openRentalForm()" style="width:36px;height:36px;border-radius:18px;background:rgba(255,255,255,0.25);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+      </div>
     </div>
   </div>
   <div style="background:#fff;border-bottom:1px solid var(--sep);padding:10px 16px;display:flex;flex-direction:column;gap:10px">
@@ -832,10 +828,15 @@ function renderTimelineView(){
   let h=`<div style="background:linear-gradient(135deg,#1E3A8A,#2563EB,#3B82F6);padding:max(16px,env(safe-area-inset-top,16px)) 16px 16px">
     <div style="display:flex;align-items:center;justify-content:space-between">
       <div style="font-size:22px;font-weight:800;color:#fff">Verleih</div>
-      <button onclick="openRentalStats()" style="background:rgba(255,255,255,.18);border:none;border-radius:10px;padding:7px 12px;margin-right:68px;cursor:pointer;display:flex;align-items:center;gap:6px;color:#fff;font-size:13px;font-weight:700">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-        Statistik
-      </button>
+      <div style="display:flex;align-items:center;gap:10px">
+        <button onclick="openRentalStats()" style="background:rgba(255,255,255,.18);border:none;border-radius:10px;padding:7px 12px;cursor:pointer;display:flex;align-items:center;gap:6px;color:#fff;font-size:13px;font-weight:700">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          Statistik
+        </button>
+        <button onclick="openRentalForm()" style="width:36px;height:36px;border-radius:18px;background:rgba(255,255,255,0.25);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+      </div>
     </div>
   </div>
   <div style="background:#fff;border-bottom:1px solid var(--sep);padding:10px 16px">
