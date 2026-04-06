@@ -273,13 +273,6 @@ input[type="date"].inp{-webkit-appearance:none;appearance:none;height:52px;box-s
         </svg>
         <span style="font-size:10px;font-weight:600">Lager</span>
       </div>
-      <div class="nav-item" id="nav-stats" onclick="go('stats')">
-        <div class="nav-dot"></div>
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
-        </svg>
-        <span style="font-size:10px;font-weight:600">Statistik</span>
-      </div>
       <div class="nav-item" id="nav-more" onclick="go('more')">
         <div class="nav-dot"></div>
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -405,7 +398,7 @@ function render(tab){
   else if(tab==='items') c.innerHTML=renderItems();
   else if(tab==='rentals'){c.innerHTML=renderRentals();document.getElementById('fab').style.display=rentalView==='timeline'?'none':'flex';}
   else if(tab==='warehouses') c.innerHTML=renderWH();
-  else if(tab==='stats') c.innerHTML=renderStatsPage();
+
   else if(tab==='more') c.innerHTML=renderMore();
 }
 
@@ -737,7 +730,13 @@ function renderRentals(){
   const list=rentalSeg==='alle'?D.rentals:D.rentals.filter(r=>r.status===rentalSeg);
   const cnt=s=>D.rentals.filter(r=>r.status===s).length;
   let h=`<div style="background:linear-gradient(135deg,#1E3A8A,#2563EB,#3B82F6);padding:max(16px,env(safe-area-inset-top,16px)) 16px 16px">
-    <div style="font-size:22px;font-weight:800;color:#fff">Verleih</div>
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:22px;font-weight:800;color:#fff">Verleih</div>
+      <button onclick="openRentalStats()" style="background:rgba(255,255,255,.18);border:none;border-radius:10px;padding:7px 12px;cursor:pointer;display:flex;align-items:center;gap:6px;color:#fff;font-size:13px;font-weight:700">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        Statistik
+      </button>
+    </div>
   </div>
   <div style="background:#fff;border-bottom:1px solid var(--sep);padding:10px 16px;display:flex;flex-direction:column;gap:10px">
     <div style="display:flex;background:#F1F5F9;border-radius:12px;padding:3px;gap:3px">
@@ -909,7 +908,13 @@ function renderTimelineView(){
   const scrollLeft=Math.max(0,(DAYS_BEFORE-2)*CELL);
 
   let h=`<div style="background:linear-gradient(135deg,#1E3A8A,#2563EB,#3B82F6);padding:max(16px,env(safe-area-inset-top,16px)) 16px 16px">
-    <div style="font-size:22px;font-weight:800;color:#fff">Verleih</div>
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:22px;font-weight:800;color:#fff">Verleih</div>
+      <button onclick="openRentalStats()" style="background:rgba(255,255,255,.18);border:none;border-radius:10px;padding:7px 12px;cursor:pointer;display:flex;align-items:center;gap:6px;color:#fff;font-size:13px;font-weight:700">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        Statistik
+      </button>
+    </div>
   </div>
   <div style="background:#fff;border-bottom:1px solid var(--sep);padding:10px 16px">
     <div style="display:flex;background:#F1F5F9;border-radius:12px;padding:3px;gap:3px">
@@ -1417,11 +1422,8 @@ function delLoc(id){
 }
 
 // ── MORE PAGE ────────────────────────────────────────────────────────────────
-function renderStatsPage(){
-  return `<div style="background:linear-gradient(135deg,#1E3A8A,#2563EB,#3B82F6);padding:max(16px,env(safe-area-inset-top,16px)) 16px 20px">
-    <div style="font-size:22px;font-weight:800;color:#fff">Statistik</div>
-    <div style="font-size:14px;color:rgba(255,255,255,.7);margin-top:2px">${new Date().getFullYear()} · Gesamtübersicht</div>
-  </div>`+renderStats();
+function openRentalStats(){
+  openModal('Statistik Verleih',`<div style="margin:-4px -4px 0">${renderStats()}</div>`);
 }
 function renderStats(){
   const yr=new Date().getFullYear();
