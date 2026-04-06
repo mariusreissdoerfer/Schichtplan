@@ -683,6 +683,7 @@ function renderRentals(){
               ${e(r.addr)}</div>`:''}
             ${r.notes?`<div style="font-size:13px;color:var(--t3);font-style:italic;padding:8px 12px;background:#F8FAFC;border-radius:10px">"${e(r.notes)}"</div>`:''}
           </div>
+          ${rentalCostBreakdown(r)}
           <div style="display:flex;border-top:1px solid var(--sep)">
             ${r.status==='reserviert'?`<button onclick="setStatus(${r.id},'ausgeliehen')" style="flex:1;padding:13px 8px;background:none;border:none;font-size:13px;font-weight:700;color:var(--p);cursor:pointer">✓ Ausgeliehen</button><div style="width:1px;background:var(--sep)"></div>`:''}
             ${r.status==='ausgeliehen'?`<button onclick="setStatus(${r.id},'zurückgegeben')" style="flex:1;padding:13px 8px;background:none;border:none;font-size:13px;font-weight:700;color:var(--ok);cursor:pointer">✓ Zurückgegeben</button><div style="width:1px;background:var(--sep)"></div>`:''}
@@ -698,6 +699,34 @@ function renderRentals(){
   }
   h+=`</div><div style="height:8px"></div>`;
   return h;
+}
+
+function rentalCostBreakdown(r){
+  if(!r.s||!r.e)return '';
+  const ls=rLines(r);
+  const numDays=days(r.s,r.e);
+  const hasFee=r.baseFeeEnabled!==false&&D.settings?.baseFee;
+  const lineRows=ls.map(l=>{
+    const itm=item(l.iid);if(!itm)return '';
+    const p=r.isMember&&itm.dayMember?itm.dayMember:itm.day;
+    const lineTotal=p?p*(l.qty||1)*numDays:null;
+    return `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:5px 0;border-bottom:1px solid var(--sep)">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e(itm.name)}</div>
+        <div style="font-size:11px;color:var(--t3)">${l.qty||1}× · ${numDays} Tag${numDays!==1?'e':''} · ${p?fmt(p)+'/Tag':'kein Preis'}</div>
+      </div>
+      <div style="font-size:13px;font-weight:700;color:var(--t1);flex-shrink:0">${lineTotal?fmt(lineTotal):'–'}</div>
+    </div>`;
+  }).join('');
+  const feeRow=hasFee?`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--sep)">
+    <div style="font-size:13px;color:var(--t2)">Grundgebühr</div>
+    <div style="font-size:13px;font-weight:700;color:var(--t1)">${fmt(D.settings.baseFee)}</div>
+  </div>`:'';
+  const totalRow=r.total!=null?`<div style="display:flex;justify-content:space-between;padding:8px 0 2px">
+    <div style="font-size:13px;font-weight:700;color:var(--t1)">Gesamt</div>
+    <div style="font-size:15px;font-weight:800;color:var(--p)">${fmt(r.total)}</div>
+  </div>`:'';
+  return `<div style="padding:10px 14px;background:#F8FAFC;border-top:1px solid var(--sep)">${lineRows}${feeRow}${totalRow}</div>`;
 }
 
 function toggleRd(id){
@@ -1103,6 +1132,7 @@ function openRentalForm(id=null,prefillIid=null){
       <option value="custom"${r?.pt==='custom'?' selected':''}>Individuell</option>
       <option value="free"${r?.pt==='free'?' selected':''}>Kostenlos</option>
     </select></div>
+    ${r?`<div style="border-radius:12px;overflow:hidden;border:1px solid var(--sep)">${rentalCostBreakdown(r)}</div>`:''}
     <div id="rf-avail" style="display:none;border-radius:12px;padding:12px 14px;font-size:14px;font-weight:600"></div>
     <div id="rf-price-box" style="display:none;background:#EFF6FF;border-radius:12px;padding:12px 14px;align-items:center;justify-content:space-between">
       <span style="font-size:14px;color:#1D4ED8">Berechneter Preis</span>
