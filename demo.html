@@ -320,7 +320,7 @@ const DEMO={
     {id:3,lines:[{iid:4,qty:2}],name:'Brauerei Hopfen GmbH',phone:'089 445566',email:'events@brauerei-hopfen.de',addr:'Brauereiweg 1, 80333 München',s:'2026-04-10',e:'2026-04-12',status:'reserviert',pt:'daily',total:30,notes:''},
     {id:4,lines:[{iid:3,qty:1}],name:'Schulverein GS Muster',phone:'',email:'sv@gs-muster.de',addr:'Schulstraße 1, 12345 Musterstadt',s:'2026-03-20',e:'2026-03-21',status:'zurückgegeben',pt:'weekend',total:30,notes:'Frühlingsfest'},
   ],
-  settings:{baseFee:15,vereinName:'Bürgerverein Musterstadt e.V.',vereinAddr:'Musterstraße 1, 12345 Musterstadt'}
+  settings:{baseFee:25,vereinName:'Bürgerverein Schleiden e.V.',vereinAddr:'53937 Schleiden'}
 };
 
 // ── STATE ────────────────────────────────────────────────────────────────────
@@ -333,7 +333,7 @@ function migrateRentals(d){
   (d.rentals||[]).forEach(r=>{
     if(!r.lines&&r.iid){r.lines=[{iid:r.iid,qty:r.qty||1}];delete r.iid;delete r.qty;}
   });
-  if(!d.settings)d.settings={baseFee:15,vereinName:'Bürgerverein Musterstadt e.V.',vereinAddr:'Musterstraße 1, 12345 Musterstadt'};
+  if(!d.settings)d.settings={baseFee:25,vereinName:'Bürgerverein Schleiden e.V.',vereinAddr:'53937 Schleiden'};
 }
 let curTab='dashboard', itemSearch='', itemCat=0, rentalSeg='alle', rentalView='list', _nid=0;
 function nid(){ if(!_nid){ const all=[...D.items,...D.categories,...D.warehouses,...D.locations,...D.rentals]; _nid=all.length?Math.max(...all.map(x=>x.id))+1:100; } return _nid++; }
