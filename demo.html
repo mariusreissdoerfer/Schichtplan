@@ -773,6 +773,8 @@ function renderRentals(){
           <div style="display:flex;border-top:1px solid var(--sep)">
             ${r.status==='reserviert'?`<button onclick="setStatus(${r.id},'ausgeliehen')" style="flex:1;padding:13px 8px;background:none;border:none;font-size:13px;font-weight:700;color:var(--p);cursor:pointer">✓ Ausgeliehen</button><div style="width:1px;background:var(--sep)"></div>`:''}
             ${r.status==='ausgeliehen'?`<button onclick="setStatus(${r.id},'zurückgegeben')" style="flex:1;padding:13px 8px;background:none;border:none;font-size:13px;font-weight:700;color:var(--ok);cursor:pointer">✓ Zurückgegeben</button><div style="width:1px;background:var(--sep)"></div>`:''}
+            <button onclick="printRentalSlip(${r.id})" style="flex:1;padding:13px 8px;background:none;border:none;font-size:13px;font-weight:600;color:var(--p);cursor:pointer">📄 Schein</button>
+            <div style="width:1px;background:var(--sep)"></div>
             <button onclick="openRentalForm(${r.id})" style="flex:1;padding:13px 8px;background:none;border:none;font-size:13px;font-weight:600;color:var(--t2);cursor:pointer">Bearbeiten</button>
             <div style="width:1px;background:var(--sep)"></div>
             <button onclick="delRental(${r.id})" style="flex:1;padding:13px 8px;background:none;border:none;font-size:13px;font-weight:600;color:var(--err);cursor:pointer">Löschen</button>
@@ -1518,6 +1520,15 @@ function renderMore(){
       </div>
     </div>
     <div>
+      <div class="sec-hdr" style="padding:0 0 10px">Allgemeine Einstellungen</div>
+      <div class="igroup shadow" style="padding:14px;display:flex;flex-direction:column;gap:12px">
+        <div class="field"><label class="lbl">Vereinsname</label><input class="inp" id="cfg-vname" value="${e(D.settings?.vereinName||'')}" placeholder="z.B. Bürgerverein Musterstadt e.V." oninput="D.settings.vereinName=this.value;save()"></div>
+        <div class="field"><label class="lbl">Vereinsadresse</label><input class="inp" id="cfg-vaddr" value="${e(D.settings?.vereinAddr||'')}" placeholder="Straße, PLZ Ort" oninput="D.settings.vereinAddr=this.value;save()"></div>
+        <div class="field"><label class="lbl">Grundgebühr pro Verleih (€)</label><input class="inp" type="number" step="0.50" id="cfg-basefee" value="${D.settings?.baseFee||''}" placeholder="z.B. 15" oninput="D.settings.baseFee=parseFloat(this.value)||0;save()"></div>
+        <div style="font-size:12px;color:var(--t3)">Bearbeitungsgebühr, die standardmäßig zu jedem Verleih addiert wird. Im Verleihformular kann sie deaktiviert werden.</div>
+      </div>
+    </div>
+    <div>
       <div class="sec-hdr" style="padding:0 0 10px">Demo & Daten</div>
       <div class="igroup shadow">
         <div class="srow" style="border:none;cursor:default">
@@ -1619,6 +1630,82 @@ function toast(msg,type='ok'){
   el.innerHTML=`<span style="font-size:16px">${type==='err'?'✕':type==='warn'?'⚠':'✓'}</span>${msg}`;
   c.appendChild(el);
   setTimeout(()=>el.remove(),3300);
+}
+
+// ── VERLEIHSCHEIN PDF ────────────────────────────────────────────────────────
+function printRentalSlip(id){
+  const r=D.rentals.find(x=>x.id===id);if(!r)return;
+  const ls=rLines(r);
+  const vname=D.settings?.vereinName||'Bürgerverein';
+  const vaddr=D.settings?.vereinAddr||'';
+  const totalDays=days(r.s,r.e);
+  const isMemberText=r.isMember?' (Mitgliederpreis)':'';
+  const linesHtml=ls.map(l=>{
+    const itm=item(l.iid);if(!itm)return'';
+    const p=r.isMember&&itm.dayMember?itm.dayMember:itm.day;
+    const lineTotal=p?p*l.qty*totalDays:null;
+    return '<tr>'
+      +'<td style="padding:8px 12px;border-bottom:1px solid #e2e8f0">'+e(itm.name)+'</td>'
+      +'<td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;text-align:center">'+l.qty+'</td>'
+      +'<td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;text-align:center">'+totalDays+'</td>'
+      +'<td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;text-align:right">'+(p?fmt(p):'–')+'/Tag</td>'
+      +'<td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;text-align:right;font-weight:600">'+(lineTotal?fmt(lineTotal):'–')+'</td>'
+      +'</tr>';
+  }).join('');
+  const baseFeeRow=r.baseFeeEnabled!==false&&D.settings?.baseFee
+    ?'<tr><td colspan="4" style="padding:8px 12px;text-align:right;color:#64748b">Grundgebühr</td><td style="padding:8px 12px;text-align:right;font-weight:600">'+fmt(D.settings.baseFee)+'</td></tr>':'';
+  const html='<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><title>Verleihschein</title>'
+    +'<style>body{font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif;max-width:720px;margin:32px auto;padding:0 24px;color:#0f172a;font-size:14px}'
+    +'h1{font-size:22px;font-weight:800;margin:0}'
+    +'.hdr{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #2563eb;padding-bottom:16px;margin-bottom:24px}'
+    +'.section{margin-bottom:20px}'
+    +'.section h2{font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin:0 0 8px}'
+    +'table{width:100%;border-collapse:collapse}'
+    +'th{background:#f8fafc;padding:8px 12px;text-align:left;font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase}'
+    +'.total{font-size:18px;font-weight:800;color:#2563eb}'
+    +'.sig{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:40px}'
+    +'.sig-line{border-top:1.5px solid #cbd5e1;padding-top:6px;font-size:12px;color:#94a3b8}'
+    +'.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700}'
+    +'@media print{body{margin:0}}'
+    +'</style></head><body>'
+    +'<div class="hdr">'
+    +'<div><h1>Verleihschein</h1><div style="color:#64748b;margin-top:4px">'+vname+'</div>'+(vaddr?'<div style="color:#94a3b8;font-size:13px">'+e(vaddr)+'</div>':'')+'</div>'
+    +'<div style="text-align:right">'
+    +'<div style="font-size:12px;color:#64748b">Ausgestellt am</div>'
+    +'<div style="font-weight:700">'+new Date().toLocaleDateString('de-DE')+'</div>'
+    +'<div style="margin-top:8px"><span class="badge" style="background:'+statusBg(r.status)+';color:'+statusCol(r.status)+'">'+r.status+'</span>'+(r.isMember?'<span class="badge" style="background:#CFFAFE;color:#0891B2;margin-left:4px">Mitglied</span>':'')+'</div>'
+    +'</div></div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px">'
+    +'<div class="section"><h2>Entleiher</h2>'
+    +'<div style="font-weight:700;font-size:15px">'+e(r.name)+'</div>'
+    +(r.phone?'<div style="color:#64748b;margin-top:4px">📞 '+e(r.phone)+'</div>':'')
+    +(r.email?'<div style="color:#64748b">✉ '+e(r.email)+'</div>':'')
+    +(r.addr?'<div style="color:#64748b;margin-top:4px">'+e(r.addr)+'</div>':'')
+    +'</div>'
+    +'<div class="section"><h2>Zeitraum</h2>'
+    +'<div style="font-size:18px;font-weight:800">'+fdate(r.s)+' – '+fdate(r.e)+'</div>'
+    +'<div style="color:#64748b;margin-top:4px">'+totalDays+' Tag'+(totalDays!==1?'e':'')+'</div>'
+    +'</div></div>'
+    +'<div class="section"><h2>Gegenstände</h2>'
+    +'<table><thead><tr>'
+    +'<th>Gegenstand</th><th style="text-align:center">Menge</th><th style="text-align:center">Tage</th><th style="text-align:right">Preis/Tag</th><th style="text-align:right">Gesamt</th>'
+    +'</tr></thead><tbody>'
+    +linesHtml
+    +baseFeeRow
+    +'<tr><td colspan="4" style="padding:12px 12px 4px;text-align:right;font-weight:700">Gesamtbetrag'+isMemberText+'</td>'
+    +'<td style="padding:12px 12px 4px;text-align:right"><span class="total">'+(r.total!=null?fmt(r.total):'–')+'</span></td></tr>'
+    +'</tbody></table></div>'
+    +(r.notes?'<div class="section"><h2>Notizen</h2><div style="background:#f8fafc;border-radius:8px;padding:12px;color:#475569">'+e(r.notes)+'</div></div>':'')
+    +'<div class="sig">'
+    +'<div><div style="height:48px"></div><div class="sig-line">Datum, Unterschrift Entleiher</div></div>'
+    +'<div><div style="height:48px"></div><div class="sig-line">Datum, Unterschrift '+e(vname)+'</div></div>'
+    +'</div>'
+    +'<div style="margin-top:16px;font-size:11px;color:#94a3b8;text-align:center">Mit Ihrer Unterschrift bestätigen Sie die ordnungsgemäße Übergabe und die Einhaltung der Verleihbedingungen.</div>'
+    +'</body></html>';
+  const blob=new Blob([html],{type:'text/html'});
+  const url=URL.createObjectURL(blob);
+  const w=window.open(url,'_blank');
+  setTimeout(()=>{if(w)w.print();URL.revokeObjectURL(url);},500);
 }
 
 // ── INIT ─────────────────────────────────────────────────────────────────────
