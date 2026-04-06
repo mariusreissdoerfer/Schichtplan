@@ -25,7 +25,7 @@
   --r:16px;
 }
 *{-webkit-tap-highlight-color:transparent;box-sizing:border-box;-webkit-font-smoothing:antialiased}
-html{height:-webkit-fill-available}body{height:100vh;height:-webkit-fill-available;display:flex;flex-direction:column;overflow:hidden;margin:0;background:var(--bg)}
+html{height:-webkit-fill-available}body{height:100vh;height:-webkit-fill-available;display:flex;flex-direction:column;overflow:clip;margin:0;background:var(--bg)}
 body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",sans-serif;color:var(--t1);overscroll-behavior:none}
 input,select,textarea,button{font-family:inherit}
 input,select,textarea{font-size:16px!important;color:var(--t1)}
@@ -140,7 +140,8 @@ input[type="date"].inp{-webkit-appearance:none;appearance:none;height:52px;box-s
   z-index:30;width:56px;height:56px;border-radius:28px;background:#16A34A;
   color:#fff;border:none;box-shadow:0 4px 20px rgba(22,163,74,.5);
   font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;
-  transition:transform .15s,box-shadow .15s}
+  transition:transform .15s,box-shadow .15s;
+  -webkit-transform:translateZ(0);transform:translateZ(0)}
 .fab:active{transform:scale(.92);box-shadow:0 2px 10px rgba(37,99,235,.4)}
 
 /* Header */
