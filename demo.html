@@ -1,0 +1,1677 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Vereinsinventar">
+<title>Vereinsinventar</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+:root{
+  --bg:#F2F2F7;
+  --card:#FFFFFF;
+  --p:#2563EB;
+  --p2:#1D4ED8;
+  --pl:#EFF6FF;
+  --ok:#16A34A;
+  --warn:#D97706;
+  --err:#DC2626;
+  --t1:#0F172A;
+  --t2:#475569;
+  --t3:#94A3B8;
+  --sep:#E2E8F0;
+  --r:16px;
+}
+*{-webkit-tap-highlight-color:transparent;box-sizing:border-box;-webkit-font-smoothing:antialiased}
+html{height:-webkit-fill-available}body{height:100vh;height:-webkit-fill-available;display:flex;flex-direction:column;overflow:hidden;margin:0;background:var(--bg)}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",sans-serif;color:var(--t1);overscroll-behavior:none}
+input,select,textarea,button{font-family:inherit}
+input,select,textarea{font-size:16px!important;color:var(--t1)}
+::-webkit-scrollbar{display:none}
+#content{flex:1;min-height:0;overflow-y:scroll;overflow-x:hidden;-webkit-overflow-scrolling:touch;background:var(--bg);padding-bottom:16px;opacity:1}
+
+/* Cards */
+.c{background:var(--card);border-radius:var(--r);overflow:hidden}
+.c-p{padding:16px}
+.c + .c{margin-top:10px}
+.shadow{box-shadow:0 2px 12px rgba(0,0,0,.08)}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  border-radius:14px;font-weight:600;font-size:15px;cursor:pointer;
+  border:none;outline:none;transition:transform .1s,opacity .1s;padding:13px 20px}
+.btn:active{transform:scale(.96);opacity:.9}
+.btn-p{background:var(--p);color:#fff}
+.btn-s{background:#F1F5F9;color:var(--t2)}
+.btn-d{background:#FEE2E2;color:var(--err)}
+.btn-g{background:transparent;color:var(--p);padding:8px 0}
+
+/* Inputs */
+.inp{width:100%;background:#F8FAFC;border:1.5px solid var(--sep);border-radius:12px;
+  padding:13px 14px;font-size:16px;outline:none;transition:border-color .2s,background .2s}
+.inp:focus{border-color:var(--p);background:#fff}
+textarea.inp{resize:none}
+input[type="date"].inp{-webkit-appearance:none;appearance:none;height:52px;box-sizing:border-box;line-height:normal}
+.lbl{display:block;font-size:13px;font-weight:600;color:var(--t2);margin-bottom:5px;letter-spacing:.3px}
+.field{display:flex;flex-direction:column;gap:0}
+
+/* Badges */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;
+  border-radius:20px;font-size:12px;font-weight:700;letter-spacing:.3px;white-space:nowrap}
+.badge::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0}
+
+/* Toggle */
+.tgl{position:relative;width:51px;height:31px;background:#E5E7EB;border-radius:20px;
+  cursor:pointer;transition:background .2s;flex-shrink:0}
+.tgl.on{background:var(--p)}
+.tgl::after{content:'';position:absolute;top:2px;left:2px;width:27px;height:27px;
+  background:#fff;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,.25);transition:transform .2s}
+.tgl.on::after{transform:translateX(20px)}
+
+/* Nav */
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;cursor:pointer;padding:8px 4px;position:relative;transition:color .15s}
+.nav-item svg{transition:transform .15s}
+.nav-item.active{color:var(--p)}
+.nav-item:not(.active){color:#9CA3AF}
+.nav-dot{position:absolute;top:4px;width:4px;height:4px;border-radius:50%;
+  background:var(--p);opacity:0;transition:opacity .2s}
+.nav-item.active .nav-dot{opacity:1}
+
+/* Modal */
+.sheet{position:fixed;bottom:0;left:0;right:0;background:var(--card);
+  border-radius:24px 24px 0 0;z-index:60;display:flex;flex-direction:column;
+  max-height:94vh;box-shadow:0 -4px 30px rgba(0,0,0,.15);
+  transform:translateY(110%);transition:transform .35s cubic-bezier(.32,.72,0,1);
+  pointer-events:none;visibility:hidden}
+.sheet.open{transform:translateY(0);pointer-events:all;visibility:visible}
+.sheet-handle{width:36px;height:4px;border-radius:2px;background:#D1D5DB;margin:10px auto 4px}
+.sheet-title{font-size:18px;font-weight:700;padding:4px 20px 16px;color:var(--t1)}
+.sheet-body{overflow-y:scroll;-webkit-overflow-scrolling:touch;padding:0 20px;
+  padding-bottom:calc(env(safe-area-inset-bottom,0px)+20px);flex:1}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:50;
+  opacity:0;pointer-events:none;transition:opacity .25s}
+.overlay.show{opacity:1;pointer-events:all}
+
+/* Segment */
+.seg{display:flex;background:#E9ECEF;border-radius:10px;padding:2px;gap:2px}
+.seg-item{flex:1;padding:7px 4px;border-radius:8px;font-size:13px;font-weight:600;
+  text-align:center;cursor:pointer;transition:background .2s,color .2s;color:var(--t2)}
+.seg-item.active{background:#fff;color:var(--t1);box-shadow:0 1px 4px rgba(0,0,0,.12)}
+
+/* Search */
+.search-wrap{position:relative}
+.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);pointer-events:none}
+.search-inp{padding-left:38px;padding-right:36px}
+.search-clear{position:absolute;right:10px;top:50%;transform:translateY(-50%);
+  background:#CBD5E1;border:none;border-radius:50%;width:20px;height:20px;
+  color:#fff;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+
+/* Chip */
+.chip{display:inline-flex;align-items:center;padding:6px 14px;border-radius:20px;
+  font-size:13px;font-weight:600;cursor:pointer;border:1.5px solid transparent;
+  white-space:nowrap;transition:all .15s}
+
+/* Stat card */
+.stat-card{background:var(--card);border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:8px}
+.stat-icon{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center}
+.stat-val{font-size:28px;font-weight:800;letter-spacing:-1px;line-height:1}
+.stat-lbl{font-size:13px;color:var(--t2);font-weight:500}
+.stat-sub{font-size:12px;color:var(--t3)}
+
+/* Item card */
+.item-row{display:flex;gap:12px;padding:14px;align-items:center}
+.item-icon{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.item-bar{width:3px;border-radius:2px;align-self:stretch;flex-shrink:0}
+
+/* List row */
+.list-row{display:flex;align-items:center;gap:12px;padding:14px 16px;
+  background:var(--card);border-bottom:1px solid var(--sep)}
+.list-row:last-child{border-bottom:none}
+
+/* Section header */
+.sec-hdr{font-size:13px;font-weight:700;color:var(--t3);letter-spacing:.6px;
+  text-transform:uppercase;padding:24px 20px 8px;line-height:1}
+
+
+/* Header */
+.hdr{position:sticky;top:0;z-index:20;
+  background:linear-gradient(135deg,#1E40AF,#2563EB,#3B82F6);
+  padding:max(14px,env(safe-area-inset-top,14px)) 16px 14px;
+  display:flex;align-items:center;gap:12px}
+
+/* Animations */
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.fadeUp{animation:fadeUp .3s ease both}
+@keyframes toastIn{from{opacity:0;transform:translateY(-10px) scale(.95)}to{opacity:1;transform:none}}
+@keyframes toastOut{to{opacity:0;transform:translateY(-6px);pointer-events:none}}
+.toast-el{animation:toastIn .3s ease,toastOut .3s 2.8s forwards}
+
+/* Divider */
+.divider{height:1px;background:var(--sep);margin:0 16px}
+
+/* Settings row */
+.srow{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--card);
+  border-bottom:1px solid var(--sep);cursor:pointer;transition:background .15s}
+.srow:active{background:#F8FAFC}
+.srow:last-child{border-bottom:none}
+.srow-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;
+  justify-content:center;font-size:17px;flex-shrink:0}
+
+/* Pull indicator */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:60px 20px;gap:12px}
+.empty-icon{font-size:56px;opacity:.35}
+.empty-text{font-size:17px;font-weight:600;color:var(--t2);text-align:center}
+.empty-sub{font-size:14px;color:var(--t3);text-align:center}
+
+/* iOS-style group */
+.igroup{border-radius:var(--r);overflow:hidden;background:var(--card)}
+
+/* Confirm dialog */
+.dlg{background:#fff;border-radius:20px;width:280px;text-align:center;
+  overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.dlg-btns{display:flex;border-top:1px solid var(--sep)}
+.dlg-btn{flex:1;padding:14px;font-size:17px;cursor:pointer;background:none;border:none;
+  font-family:inherit;transition:background .15s}
+.dlg-btn:active{background:#F8FAFC}
+.dlg-btn + .dlg-btn{border-left:1px solid var(--sep);color:var(--err);font-weight:700}
+</style>
+</head>
+<body>
+
+<!-- TOAST -->
+<div id="toasts" style="position:fixed;top:max(16px,env(safe-area-inset-top,16px));left:50%;transform:translateX(-50%);z-index:100;display:flex;flex-direction:column;gap:8px;width:calc(100% - 32px);max-width:360px;pointer-events:none"></div>
+
+<!-- OVERLAY -->
+<div id="ov" class="overlay" onclick="closeModal()"></div>
+
+<!-- MODAL -->
+<div id="modal" class="sheet">
+  <div class="sheet-handle"></div>
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 20px 16px">
+    <div class="sheet-title" id="mtitle" style="padding:0;margin:0"></div>
+    <button onclick="closeModal()" style="width:32px;height:32px;border-radius:50%;background:#F1F5F9;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--t2);font-size:18px;line-height:1">×</button>
+  </div>
+  <div class="sheet-body" id="mbody"></div>
+</div>
+
+<!-- CONFIRM -->
+<div id="cdlg" style="position:fixed;inset:0;z-index:80;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.5);backdrop-filter:blur(6px)">
+  <div class="dlg fadeUp">
+    <div style="padding:24px 20px 16px">
+      <div id="cdlg-t" style="font-size:17px;font-weight:700;color:var(--t1);margin-bottom:8px"></div>
+      <div id="cdlg-m" style="font-size:15px;color:var(--t2);line-height:1.5"></div>
+    </div>
+    <div class="dlg-btns">
+      <button class="dlg-btn" onclick="document.getElementById('cdlg').style.display='none'">Abbrechen</button>
+      <button class="dlg-btn" id="cdlg-ok">Löschen</button>
+    </div>
+  </div>
+</div>
+
+<!-- ITEM PICKER (sheet over modal) -->
+<div id="ov2" class="overlay" style="z-index:64" onclick="closeItemPicker()"></div>
+<div id="item-picker" style="position:fixed;top:max(44px,env(safe-area-inset-top,44px));bottom:0;left:0;right:0;background:var(--card);border-radius:24px 24px 0 0;z-index:65;display:flex;flex-direction:column;box-shadow:0 -8px 40px rgba(0,0,0,.2);transform:translateY(110%);transition:transform .35s cubic-bezier(.32,.72,0,1);pointer-events:none;visibility:hidden">
+  <div style="width:36px;height:4px;border-radius:2px;background:#D1D5DB;margin:10px auto 0;flex-shrink:0"></div>
+  <div style="background:#fff;padding:10px 16px 0;border-radius:24px 24px 0 0;flex-shrink:0">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div style="font-size:18px;font-weight:700;color:var(--t1)">Gegenstand wählen</div>
+      <button onclick="closeItemPicker()" style="width:32px;height:32px;border-radius:50%;background:#F1F5F9;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t2);font-size:18px">×</button>
+    </div>
+    <div class="search-wrap" style="margin-bottom:12px">
+      <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="ip-search" class="inp search-inp" placeholder="Suchen..." oninput="ipRender()">
+    </div>
+  </div>
+  <div id="ip-cats" style="overflow-x:auto;-webkit-overflow-scrolling:touch;display:flex;flex-wrap:nowrap;gap:8px;padding:10px 16px;background:#fff;border-bottom:1px solid var(--sep);flex-shrink:0;min-height:52px;align-items:center"></div>
+  <div id="ip-list" style="flex:1;min-height:0;overflow-y:scroll;-webkit-overflow-scrolling:touch;padding:12px 16px;padding-bottom:calc(env(safe-area-inset-bottom,0px)+16px)"></div>
+</div>
+
+<!-- APP SHELL: body IS the flex container -->
+<!-- CONTENT -->
+<div id="content"></div>
+
+<!-- BOTTOM NAV -->
+<div style="background:#fff;border-top:1px solid var(--sep);flex-shrink:0;padding-bottom:env(safe-area-inset-bottom,0px)">
+    <div style="display:flex;height:56px">
+      <div class="nav-item active" id="nav-items" onclick="go('items')">
+        <div class="nav-dot"></div>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+          <polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
+        </svg>
+        <span style="font-size:10px;font-weight:600">Inventar</span>
+      </div>
+      <div class="nav-item" id="nav-rentals" onclick="go('rentals')">
+        <div class="nav-dot"></div>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+        </svg>
+        <span style="font-size:10px;font-weight:600">Verleih</span>
+      </div>
+      <div class="nav-item" id="nav-more" onclick="go('more')">
+        <div class="nav-dot"></div>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
+        </svg>
+        <span style="font-size:10px;font-weight:600">Mehr</span>
+      </div>
+    </div>
+</div>
+
+
+<script>
+// ── DATA ─────────────────────────────────────────────────────────────────────
+const DEMO={
+  categories:[
+    {id:1,name:'Zelte',color:'#F59E0B',emoji:'⛺'},
+    {id:2,name:'Möbel',color:'#10B981',emoji:'🪑'},
+    {id:3,name:'Elektro',color:'#3B82F6',emoji:'⚡'},
+    {id:4,name:'Küche & Catering',color:'#EF4444',emoji:'🍳'},
+    {id:5,name:'Transport & Lagerung',color:'#8B5CF6',emoji:'📦'},
+  ],
+  warehouses:[
+    {id:1,name:'Lagerhalle 1',address:'Musterstraße 1, 12345 Musterstadt'},
+    {id:2,name:'Lagerhalle 2',address:'Nebenstraße 5, 12345 Musterstadt'},
+  ],
+  locations:[
+    {id:1,wid:1,name:'Eingangsbereich'},{id:2,wid:1,name:'Regal A'},
+    {id:3,wid:1,name:'Regal B'},{id:4,wid:2,name:'Hauptfläche'},
+    {id:5,wid:2,name:'Außenbereich'},
+  ],
+  items:[
+    {id:1,name:'Festzelt 6×12m',desc:'Weißes Partyzelt mit 4 Seitenwänden',cid:1,qty:1,cond:'gut',price:1200,rent:true,day:50,dayMember:30,lid:4,notes:'Heringe separat im Zubehörkasten',invnr:'INV-001',acquired:'2019-03-15',lifespan:15},
+    {id:2,name:'Biertisch-Set (4+8)',desc:'4 Tische + 8 Bierbänke, klappbar',cid:2,qty:5,cond:'gut',price:80,rent:true,day:10,dayMember:6,lid:2,notes:'',invnr:'INV-002',acquired:'2020-06-01',lifespan:10},
+    {id:3,name:'Grillwagen groß',desc:'Holzkohlegrillwagen, 120 cm Grillrost',cid:4,qty:2,cond:'sehr gut',price:350,rent:true,day:20,dayMember:12,lid:1,notes:'Reinigung nach Verleih nötig',invnr:'INV-003',acquired:'2022-04-20',lifespan:12},
+    {id:4,name:'Verlängerungskabel 50m',desc:'Gelbes 16A Kabel mit Mehrfachsteckdose',cid:3,qty:3,cond:'gut',price:45,rent:true,day:5,lid:3,notes:'',invnr:'INV-004',acquired:'2021-09-10',lifespan:8},
+    {id:5,name:'IBC-Container 1000L',desc:'Kunststoff-Gitterbox für Wasser',cid:5,qty:4,cond:'befriedigend',price:180,rent:false,day:null,lid:5,notes:'Nicht für Lebensmittel',invnr:'INV-005',acquired:'2018-05-01',lifespan:20},
+    {id:6,name:'Kunststoffbecher 0,4L',desc:'Transparente Wiederverwendungsbecher (Satz 50 Stk.)',cid:4,qty:250,cond:'gut',price:0.8,rent:true,day:15,lid:2,notes:'Preis pauschal pro Satz',invnr:'INV-006',acquired:'',lifespan:null},
+    {id:7,name:'PA-Anlage 2.1',desc:'Aktives Lautsprecherset mit Subwoofer und 2 Tops, Behringer',cid:3,qty:1,cond:'sehr gut',price:680,rent:true,day:40,dayMember:25,lid:3,notes:'Kabel im Zubehörkoffer',invnr:'INV-007',acquired:'2021-02-10',lifespan:10},
+    {id:8,name:'Pavillon 3×3m',desc:'Faltpavillon mit Seitenteilen, wasserdicht',cid:1,qty:6,cond:'gut',price:120,rent:true,day:12,dayMember:8,lid:4,notes:'',invnr:'INV-008',acquired:'2020-08-15',lifespan:8},
+    {id:9,name:'Kaffeemaschine 100-Tassen',desc:'Großküchenmaschine, 10L Kapazität',cid:4,qty:2,cond:'sehr gut',price:290,rent:true,day:15,dayMember:10,lid:1,notes:'Entkalken nach je 10 Einsätzen',invnr:'INV-009',acquired:'2023-01-20',lifespan:8},
+    {id:10,name:'Biertischgarnitur (Holz)',desc:'Massive Holzgarnitur, 2 Bänke + 1 Tisch',cid:2,qty:8,cond:'befriedigend',price:150,rent:true,day:8,dayMember:5,lid:2,notes:'Einige Tische haben Kratzer',invnr:'INV-010',acquired:'2017-06-01',lifespan:20},
+  ],
+  rentals:[
+    {id:1,lines:[{iid:1,qty:1},{iid:2,qty:2}],isMember:false,baseFeeEnabled:true,name:'TV Schleiden 1910',phone:'0151 12345678',email:'kontakt@tv-schleiden.de',addr:'Sportplatzweg 3, 53937 Schleiden',s:'2026-03-28',e:'2026-04-01',status:'ausgeliehen',pt:'daily',total:355,notes:'Aufbau Do, Abbau Mi'},
+    {id:2,lines:[{iid:2,qty:2}],isMember:true,baseFeeEnabled:true,name:'Familie Berger',phone:'0170 9876543',email:'',addr:'Gartenweg 3, 53937 Schleiden',s:'2026-04-05',e:'2026-04-07',status:'reserviert',pt:'daily',total:61,notes:'Geburtstagsfeier'},
+    {id:3,lines:[{iid:7,qty:1},{iid:4,qty:2}],isMember:false,baseFeeEnabled:true,name:'Schützenvereins Gemünd',phone:'02444 1234',email:'info@sv-gemünd.de',addr:'Schützenstr. 1, 53937 Schleiden',s:'2026-04-10',e:'2026-04-12',status:'reserviert',pt:'daily',total:155,notes:'Schützenfest'},
+    {id:4,lines:[{iid:3,qty:1}],isMember:false,baseFeeEnabled:true,name:'Grundschule Schleiden',phone:'',email:'sekretariat@gs-schleiden.de',addr:'Schulstraße 1, 53937 Schleiden',s:'2026-03-20',e:'2026-03-21',status:'zurückgegeben',pt:'daily',total:65,notes:'Frühlingsfest'},
+  ],
+  settings:{baseFee:25,vereinName:'Bürgerverein Schleiden e.V.',vereinAddr:'53937 Schleiden'}
+};
+
+// ── STATE ────────────────────────────────────────────────────────────────────
+let D = (() => {
+  try { const r=JSON.parse(localStorage.getItem('vi2')); if(r){migrateRentals(r);return r;} }catch(e){}
+  const d=JSON.parse(JSON.stringify(DEMO));migrateRentals(d);return d;
+})();
+function migrateRentals(d){
+  // Convert old {iid,qty} format to {lines:[{iid,qty}]}
+  (d.rentals||[]).forEach(r=>{
+    if(!r.lines&&r.iid){r.lines=[{iid:r.iid,qty:r.qty||1}];delete r.iid;delete r.qty;}
+  });
+  if(!d.settings)d.settings={baseFee:25,vereinName:'Bürgerverein Schleiden e.V.',vereinAddr:'53937 Schleiden'};
+}
+let curTab='dashboard', itemSearch='', itemCat=0, rentalSeg='alle', rentalView='list', _nid=0;
+function nid(){ if(!_nid){ const all=[...D.items,...D.categories,...D.warehouses,...D.locations,...D.rentals]; _nid=all.length?Math.max(...all.map(x=>x.id))+1:100; } return _nid++; }
+function save(){ try{ localStorage.setItem('vi2',JSON.stringify(D)); }catch(e){} }
+
+// ── HELPERS ──────────────────────────────────────────────────────────────────
+const e=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const eu=s=>String(s||'').replace(/'/g,"\\'");
+const fmt=n=>n!=null?Number(n).toLocaleString('de-DE',{style:'currency',currency:'EUR'}):'–';
+const fdate=d=>{if(!d)return'–';const[y,m,dd]=d.split('-');return`${dd}.${m}.${y.slice(2)}`;};
+const days=(a,b)=>Math.max(1,Math.ceil((new Date(b)-new Date(a))/864e5)+1);
+const cat=id=>D.categories.find(x=>x.id===id);
+const loc=id=>D.locations.find(x=>x.id===id);
+const wh=id=>D.warehouses.find(x=>x.id===id);
+const item=id=>D.items.find(x=>x.id===id);
+const locFull=id=>{const l=loc(id);if(!l)return'–';const w=wh(l.wid);return w?`${w.name} › ${l.name}`:l.name;};
+const condCol=c=>({neuwertig:'#16A34A','sehr gut':'#16A34A',gut:'#2563EB',befriedigend:'#D97706','reparaturbedürftig':'#DC2626'}[c]||'#94A3B8');
+const condBg=c=>({neuwertig:'#DCFCE7','sehr gut':'#DCFCE7',gut:'#DBEAFE',befriedigend:'#FEF3C7','reparaturbedürftig':'#FEE2E2'}[c]||'#F1F5F9');
+const statusCol=s=>({reserviert:'#D97706',ausgeliehen:'#2563EB',zurückgegeben:'#16A34A',storniert:'#94A3B8'}[s]||'#94A3B8');
+const statusBg=s=>({reserviert:'#FEF3C7',ausgeliehen:'#DBEAFE',zurückgegeben:'#DCFCE7',storniert:'#F1F5F9'}[s]||'#F1F5F9');
+const rLines=r=>r.lines||(r.iid?[{iid:r.iid,qty:r.qty||1}]:[]);
+const rItemNames=r=>{const ls=rLines(r);if(!ls.length)return'–';if(ls.length===1){const i=item(ls[0].iid);return i?i.name:'Unbekannt';}return ls.map(l=>{const i=item(l.iid);return i?i.name:'?';}).join(', ');};
+const rItemSummary=r=>{const ls=rLines(r);if(!ls.length)return'–';if(ls.length===1){const i=item(ls[0].iid);return`${i?i.name:'Unbekannt'} · ${ls[0].qty}×`;}return`${ls.length} Gegenstände`;};
+function buchwert(price,acquired,lifespan){
+  if(!price||!acquired||!lifespan)return null;
+  const years=(new Date()-new Date(acquired))/(365.25*24*3600*1000);
+  return Math.max(0,price*(1-Math.min(1,years/lifespan)));}
+function buchwertStr(itm){
+  const bw=buchwert(itm.price,itm.acquired,itm.lifespan);
+  if(bw===null)return null;
+  const years=((new Date()-new Date(itm.acquired))/(365.25*24*3600*1000));
+  const pct=Math.max(0,Math.round((1-Math.min(1,years/itm.lifespan))*100));
+  return{val:bw,pct};}
+function avail(iid,s,e_,qty,excId=null){
+  const itm=item(iid);if(!itm)return{ok:false,n:0,total:0};
+  const used=D.rentals.filter(r=>r.id!==excId&&!['zurückgegeben','storniert'].includes(r.status)&&r.s<=e_&&r.e>=s)
+    .reduce((a,r)=>{const l=(rLines(r)).find(x=>x.iid===iid);return a+(l?l.qty:0);},0);
+  return{ok:(itm.qty-used)>=qty,n:itm.qty-used,total:itm.qty};
+}
+
+// ── NAVIGATE ─────────────────────────────────────────────────────────────────
+function go(tab){
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  curTab=tab;
+  document.getElementById(`nav-${tab}`)?.classList.add('active');
+  render(tab);
+  const c=document.getElementById('content');if(c)c.scrollTop=0;
+}
+
+function fabAction(){ curTab==='items'?openItemForm():openRentalForm(); }
+
+function render(tab){
+  const c=document.getElementById('content');
+  if(!c)return;
+  if(tab==='items') c.innerHTML=renderItems();
+  else if(tab==='rentals'){c.innerHTML=renderRentals();}
+  else if(tab==='warehouses') c.innerHTML=renderWH();
+
+  else if(tab==='more') c.innerHTML=renderMore();
+}
+
+
+
+// ── ITEMS PAGE ───────────────────────────────────────────────────────────────
+function renderItems(){
+  const filtered=D.items.filter(i=>{
+    const ms=(i.name+(i.desc||'')).toLowerCase().includes(itemSearch.toLowerCase());
+    return ms&&(!itemCat||i.cid===itemCat);
+  });
+  let h=`<div style="background:linear-gradient(135deg,#1E3A8A,#2563EB,#3B82F6);padding:max(16px,env(safe-area-inset-top,16px)) 16px 20px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div style="font-size:22px;font-weight:800;color:#fff">Inventar</div>
+      <button onclick="openItemForm()" style="width:36px;height:36px;border-radius:18px;background:rgba(255,255,255,0.25);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+    </div>
+    <div class="search-wrap">
+      <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input class="inp search-inp" id="item-search" placeholder="Suchen..." value="${e(itemSearch)}" oninput="itemSearch=this.value;render('items')" style="background:rgba(255,255,255,.95)">
+      ${itemSearch?`<button class="search-clear" onclick="itemSearch='';render('items')">×</button>`:''}
+    </div>
+  </div>
+  <div style="padding:12px 16px;overflow-x:auto;display:flex;gap:8px;-webkit-overflow-scrolling:touch">
+    <button class="chip" onclick="itemCat=0;render('items')" style="background:${!itemCat?'var(--p)':'#fff'};color:${!itemCat?'#fff':'var(--t2)'};border-color:${!itemCat?'var(--p)':'var(--sep)'}">Alle (${D.items.length})</button>
+    ${D.categories.map(c=>`<button class="chip" onclick="itemCat=${c.id};render('items')" style="background:${itemCat===c.id?c.color:'#fff'};color:${itemCat===c.id?'#fff':'var(--t2)'};border-color:${itemCat===c.id?c.color:'var(--sep)'}">${e(c.emoji)} ${e(c.name)}</button>`).join('')}
+  </div>`;
+
+  if(!filtered.length){
+    h+=`<div class="empty-state fadeUp"><div class="empty-icon">📦</div><div class="empty-text">Keine Gegenstände</div><div class="empty-sub">Tippe auf + um einen hinzuzufügen</div></div>`;
+  } else {
+    h+=`<div style="padding:0 16px;display:flex;flex-direction:column;gap:10px" class="fadeUp">`;
+    filtered.forEach(itm=>{
+      const c=cat(itm.cid)||{color:'#94A3B8',emoji:'📦'};
+      const l=loc(itm.lid);const w=l?wh(l.wid):null;
+      h+=`<div class="c shadow" style="border-left:4px solid ${c.color}">
+        <div class="item-row" onclick="openItemDetail(${itm.id})" style="cursor:pointer">
+          <div class="item-icon" style="background:${c.color}18;font-size:24px">${c.emoji}</div>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+              <div style="font-weight:700;color:var(--t1);font-size:16px;line-height:1.2">${e(itm.name)}</div>
+              <span class="badge" style="background:${condBg(itm.cond)};color:${condCol(itm.cond)};flex-shrink:0">${itm.cond}</span>
+            </div>
+            <div style="font-size:13px;color:var(--t2);margin-top:2px">${e(c.name)}</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;align-items:center">
+              <span style="font-size:13px;font-weight:700;color:var(--t1)">${itm.qty}×</span>
+              ${w?`<span style="font-size:12px;color:var(--t3)">📍 ${e(w.name)}</span>`:''}
+              ${itm.rent&&itm.day?`<span style="font-size:12px;color:var(--p);font-weight:600">💶 ${fmt(itm.day)}/Tag</span>`:''}
+              ${itm.dayMember?`<span style="font-size:12px;color:#0891B2;font-weight:600">👤 ${fmt(itm.dayMember)}/Tag</span>`:''}
+              ${(()=>{const bw=buchwert(itm.price,itm.acquired,itm.lifespan);return bw!==null?`<span style="font-size:12px;color:var(--t3)">BW: ${fmt(bw)}</span>`:''})()}
+              ${!itm.rent?`<span style="font-size:12px;color:var(--t3)">nicht verleihbar</span>`:''}
+            </div>
+          </div>
+          <button onclick="event.stopPropagation();openItemForm(${itm.id})" style="width:36px;height:36px;flex-shrink:0;border-radius:10px;background:#F1F5F9;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t2)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+        </div>
+      </div>`;
+    });
+    h+=`</div><div style="height:8px"></div>`;
+  }
+  return h;
+}
+
+function openItemDetail(id){
+  const itm=item(id);if(!itm)return;
+  const c=cat(itm.cid)||{color:'#94A3B8',emoji:'📦',name:'–'};
+  const rentals=D.rentals.filter(r=>rLines(r).some(l=>l.iid===id)).slice(0,4);
+  let h=`<div style="text-align:center;padding:8px 0 20px">
+    <div style="width:72px;height:72px;border-radius:22px;background:${c.color}18;display:flex;align-items:center;justify-content:center;font-size:34px;margin:0 auto 10px">${c.emoji}</div>
+    <div style="font-size:20px;font-weight:800;color:var(--t1)">${e(itm.name)}</div>
+    <div style="font-size:14px;color:var(--t2);margin-top:2px">${e(c.name)}</div>
+    ${itm.desc?`<div style="font-size:14px;color:var(--t3);margin-top:8px">${e(itm.desc)}</div>`:''}
+  </div>
+  <div class="igroup" style="margin-bottom:14px">
+    <div class="list-row"><div style="flex:1;font-size:14px;color:var(--t2)">Menge</div><div style="font-weight:700">${itm.qty}</div></div>
+    <div class="list-row"><div style="flex:1;font-size:14px;color:var(--t2)">Zustand</div><span class="badge" style="background:${condBg(itm.cond)};color:${condCol(itm.cond)}">${itm.cond}</span></div>
+    ${itm.price?`<div class="list-row"><div style="flex:1;font-size:14px;color:var(--t2)">Beschaffungswert</div><div style="font-weight:700">${fmt(itm.price)}</div></div>`:''}
+    <div class="list-row" style="border:none"><div style="flex:1;font-size:14px;color:var(--t2)">Verleihbar</div><div style="font-weight:700;color:${itm.rent?'var(--ok)':'var(--t3)'}">${itm.rent?'Ja':'Nein'}</div></div>
+  </div>
+  ${(()=>{const bw=buchwertStr(itm);return bw?`<div class="igroup" style="margin-bottom:14px">
+    <div style="padding:12px 16px 4px;font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px">Buchhaltung</div>
+    ${itm.invnr?`<div class="list-row"><div style="flex:1;font-size:14px;color:var(--t2)">Inventarnummer</div><div style="font-weight:600;font-size:14px">${e(itm.invnr)}</div></div>`:''}
+    ${itm.acquired?`<div class="list-row"><div style="flex:1;font-size:14px;color:var(--t2)">Anschaffungsdatum</div><div style="font-weight:600;font-size:14px">${fdate(itm.acquired)}</div></div>`:''}
+    ${itm.lifespan?`<div class="list-row"><div style="flex:1;font-size:14px;color:var(--t2)">Nutzungsdauer</div><div style="font-weight:600;font-size:14px">${itm.lifespan} Jahre</div></div>`:''}
+    <div class="list-row" style="border:none"><div style="flex:1;font-size:14px;color:var(--t2)">Buchwert (heute)</div><div style="font-weight:700;color:${bw.pct>30?'var(--ok)':'var(--warn)'}">${fmt(bw.val)} <span style="font-size:12px;font-weight:400;color:var(--t3)">(${bw.pct}%)</span></div></div>
+  </div>`:(itm.invnr?`<div class="igroup" style="margin-bottom:14px">
+    <div class="list-row" style="border:none"><div style="flex:1;font-size:14px;color:var(--t2)">Inventarnummer</div><div style="font-weight:600;font-size:14px">${e(itm.invnr)}</div></div>
+  </div>`:'');})()}
+  ${itm.rent&&(itm.day||itm.dayMember)?`<div class="igroup" style="margin-bottom:14px">
+    <div style="padding:12px 16px 8px;font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px">Mietpreise</div>
+    <div style="padding:0 16px 12px">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;font-size:13px">
+        <div style="color:var(--t3);font-weight:600;padding-bottom:6px"></div>
+        <div style="color:var(--t3);font-weight:600;text-align:center;padding-bottom:6px">Standard</div>
+        <div style="color:#0891B2;font-weight:600;text-align:center;padding-bottom:6px">Mitglied</div>
+        <div style="color:var(--t2);padding:6px 0;border-top:1px solid var(--sep)">Tagespreis</div>
+        <div style="font-weight:700;color:var(--p);text-align:center;padding:6px 0;border-top:1px solid var(--sep)">${itm.day?fmt(itm.day):'–'}</div>
+        <div style="font-weight:700;color:#0891B2;text-align:center;padding:6px 0;border-top:1px solid var(--sep)">${itm.dayMember?fmt(itm.dayMember):'–'}</div>
+      </div>
+    </div>
+  </div>`:''}
+  ${(()=>{
+    const allR=D.rentals.filter(r=>rLines(r).some(l=>l.iid===id)&&!['storniert'].includes(r.status));
+    const yr=new Date().getFullYear();
+    const yrR=allR.filter(r=>r.s&&r.s.startsWith(yr));
+    const rev=r=>{
+      if(!r.total)return 0;
+      const ls=rLines(r);const tot=ls.reduce((s,x)=>s+x.qty,0);
+      const l=ls.find(x=>x.iid===id);return l?r.total*(l.qty/tot):0;};
+    const totalRev=allR.reduce((s,r)=>s+rev(r),0);
+    const yrRev=yrR.reduce((s,r)=>s+rev(r),0);
+    const avgDays=allR.length?Math.round(allR.reduce((s,r)=>s+days(r.s,r.e),0)/allR.length):0;
+    const maxPoss=Math.max(1,days('2020-01-01',new Date().toISOString().slice(0,10)))*itm.qty;
+    const usedDays=allR.reduce((s,r)=>s+days(r.s,r.e)*(rLines(r).find(l=>l.iid===id)?.qty||0),0);
+    const util=Math.min(100,Math.round(usedDays/maxPoss*100));
+    if(!allR.length)return '';
+    return `<div class="igroup" style="margin-bottom:14px">
+    <div style="padding:12px 16px 4px;font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px">Statistik</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;padding:10px 16px 14px;gap:12px">
+      <div style="background:#F8FAFC;border-radius:12px;padding:12px;text-align:center">
+        <div style="font-size:22px;font-weight:800;color:var(--t1)">${allR.length}</div>
+        <div style="font-size:11px;color:var(--t3);font-weight:600;margin-top:2px">Verleihe gesamt</div>
+        ${yrR.length?`<div style="font-size:12px;color:var(--p);font-weight:600;margin-top:3px">${yrR.length} in ${yr}</div>`:''}
+      </div>
+      <div style="background:#F8FAFC;border-radius:12px;padding:12px;text-align:center">
+        <div style="font-size:22px;font-weight:800;color:var(--ok)">${totalRev>0?fmt(totalRev):'–'}</div>
+        <div style="font-size:11px;color:var(--t3);font-weight:600;margin-top:2px">Umsatz gesamt</div>
+        ${yrRev>0?`<div style="font-size:12px;color:var(--p);font-weight:600;margin-top:3px">${fmt(yrRev)} in ${yr}</div>`:''}
+      </div>
+      <div style="background:#F8FAFC;border-radius:12px;padding:12px;text-align:center">
+        <div style="font-size:22px;font-weight:800;color:var(--t1)">${avgDays}</div>
+        <div style="font-size:11px;color:var(--t3);font-weight:600;margin-top:2px">Ø Mietdauer (Tage)</div>
+      </div>
+      <div style="background:#F8FAFC;border-radius:12px;padding:12px;text-align:center">
+        <div style="font-size:22px;font-weight:800;color:${util>50?'var(--ok)':util>20?'var(--warn)':'var(--t3)'}">${util}%</div>
+        <div style="font-size:11px;color:var(--t3);font-weight:600;margin-top:2px">Auslastung</div>
+      </div>
+    </div>
+  </div>`;
+  })()}
+    <div class="list-row" style="border:none"><div style="flex:1;font-size:14px;color:var(--t2)">Lagerort</div><div style="font-weight:600;font-size:14px;text-align:right;max-width:60%">${e(locFull(itm.lid))}</div></div>
+  </div>
+  ${itm.notes?`<div class="igroup" style="margin-bottom:14px"><div class="list-row" style="border:none;flex-direction:column;align-items:flex-start;gap:4px"><div style="font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px">Notizen</div><div style="font-size:14px;color:var(--t2)">${e(itm.notes)}</div></div></div>`:''}
+  ${rentals.length?`<div class="igroup" style="margin-bottom:14px">
+    <div style="padding:12px 16px 4px;font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px">Letzte Verleihe</div>
+    ${rentals.map((r,i)=>{const l=rLines(r).find(x=>x.iid===id);return`<div class="list-row" style="${i===rentals.length-1?'border:none':''}">
+      <div style="flex:1;min-width:0"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e(r.name)}</div><div style="font-size:12px;color:var(--t3)">${fdate(r.s)} – ${fdate(r.e)}${l?` · ${l.qty}×`:''}</div></div>
+      <span class="badge" style="background:${statusBg(r.status)};color:${statusCol(r.status)}">${r.status}</span>
+    </div>`;}).join('')}
+  </div>`:''}
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-bottom:8px">
+    <button class="btn btn-s" onclick="closeModal();setTimeout(()=>openItemForm(${id}),360)">✏️ Bearbeiten</button>
+    <button class="btn btn-p" onclick="closeModal();setTimeout(()=>openRentalForm(null,${id}),360)">+ Verleihen</button>
+  </div>`;
+  openModal(itm.name,h);
+}
+
+function openItemForm(id=null){
+  const itm=id?item(id):null;
+  const conds=['neuwertig','sehr gut','gut','befriedigend','reparaturbedürftig'];
+  let h=`<form onsubmit="saveItem(event,${id||'null'})"><div style="display:flex;flex-direction:column;gap:14px">
+    <div class="field"><label class="lbl">Name *</label><input class="inp" name="name" required placeholder="z.B. Festzelt 6×12m" value="${e(itm?.name||'')}"></div>
+    <div class="field"><label class="lbl">Beschreibung</label><textarea class="inp" name="desc" rows="2" placeholder="Details zum Gegenstand...">${e(itm?.desc||'')}</textarea></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="field"><label class="lbl">Kategorie</label><select class="inp" name="cid"><option value="">– keine –</option>${D.categories.map(c=>`<option value="${c.id}"${itm&&itm.cid===c.id?' selected':''}>${e(c.name)}</option>`).join('')}</select></div>
+      <div class="field"><label class="lbl">Menge</label><input class="inp" type="number" min="1" name="qty" value="${itm?.qty||1}"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="field"><label class="lbl">Zustand</label><select class="inp" name="cond">${conds.map(c=>`<option${itm&&itm.cond===c?' selected':''}>${c}</option>`).join('')}</select></div>
+      <div class="field"><label class="lbl">Beschaffungswert €</label><input class="inp" type="number" step="0.01" name="price" id="if-price" oninput="ifUpdateBw()" value="${itm?.price||''}"></div>
+    </div>
+    <div style="background:#F8FAFC;border-radius:16px;padding:14px">
+      <div style="font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Buchhaltung</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <input class="inp" name="invnr" placeholder="Inventarnummer (z.B. INV-001)" value="${e(itm?.invnr||'')}">
+        <div class="field"><label class="lbl">Anschaffungsdatum</label><input class="inp" type="date" name="acquired" id="if-acquired" oninput="ifUpdateBw()" style="height:52px;box-sizing:border-box" value="${itm?.acquired||''}"></div>
+        <div class="field"><label class="lbl">Nutzungsdauer (Jahre)</label><input class="inp" type="number" min="1" max="50" name="lifespan" id="if-lifespan" oninput="ifUpdateBw()" style="height:52px;box-sizing:border-box" value="${itm?.lifespan||''}"></div>
+        <div id="if-bw" style="display:none;font-size:13px;font-weight:600;color:#1D4ED8;background:#EFF6FF;border-radius:10px;padding:8px 12px"></div>
+      </div>
+    </div>
+    <div class="field"><label class="lbl">Lagerplatz</label><select class="inp" name="lid"><option value="">– kein Lagerplatz –</option>${D.warehouses.map(w=>`<optgroup label="${e(w.name)}">${D.locations.filter(l=>l.wid===w.id).map(l=>`<option value="${l.id}"${itm&&itm.lid===l.id?' selected':''}>${e(l.name)}</option>`).join('')}</optgroup>`).join('')}</select></div>
+    <div class="igroup" style="padding:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div><div style="font-weight:600;font-size:15px">Verleihbar</div><div style="font-size:13px;color:var(--t2)">Kann an Dritte ausgeliehen werden</div></div>
+        <div class="tgl${itm?.rent!==false?' on':''}" id="rentgl" onclick="this.classList.toggle('on');document.getElementById('rentflds').style.display=this.classList.contains('on')?'block':'none'"></div>
+      </div>
+      <div id="rentflds" style="display:${itm?.rent!==false?'block':'none'};margin-top:14px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="field"><label class="lbl">Tagespreis €</label><input class="inp" type="number" step="0.01" id="day-inp" name="day" value="${itm?.day||''}"></div>
+          <div class="field"><label class="lbl">Mitglieder €/Tag</label><input class="inp" type="number" step="0.01" name="dayMember" value="${itm?.dayMember||''}"></div>
+        </div>
+      </div>
+    </div>
+    <div class="field"><label class="lbl">Notizen</label><textarea class="inp" name="notes" rows="2" placeholder="Interne Notizen...">${e(itm?.notes||'')}</textarea></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-bottom:${id?'4':'8'}px">
+      <button type="button" class="btn btn-s" onclick="closeModal()">Abbrechen</button>
+      <button type="submit" class="btn btn-p">Speichern</button>
+    </div>
+    ${id?`<button type="button" class="btn btn-d" style="width:100%;margin-top:0;padding-bottom:8px" onclick="closeModal();setTimeout(()=>delItem(${id}),360)">🗑 Artikel löschen</button>`:''}
+  </div></form>`;
+  openModal(itm?'Gegenstand bearbeiten':'Neuer Gegenstand',h);
+}
+
+function ifUpdateBw(){
+  const price=parseFloat(document.getElementById('if-price')?.value)||null;
+  const acquired=document.getElementById('if-acquired')?.value||null;
+  const lifespan=parseInt(document.getElementById('if-lifespan')?.value)||null;
+  const el=document.getElementById('if-bw');if(!el)return;
+  const bw=buchwert(price,acquired,lifespan);
+  if(bw===null){el.style.display='none';return;}
+  const years=((new Date()-new Date(acquired))/(365.25*24*3600*1000));
+  const pct=Math.max(0,Math.round((1-Math.min(1,years/lifespan))*100));
+  el.style.display='block';
+  el.textContent=`Buchwert heute: ${fmt(bw)} (${pct}% von ${fmt(price)} · AfA linear ${lifespan}J.)`;
+}
+function saveItem(e_,id){
+  e_.preventDefault();const f=e_.target;
+  const rentable=document.getElementById('rentgl').classList.contains('on');
+  const data={name:f.name.value.trim(),desc:f.desc.value.trim(),cid:parseInt(f.cid.value)||null,qty:parseInt(f.qty.value)||1,cond:f.cond.value,price:parseFloat(f.price.value)||null,invnr:f.invnr.value.trim(),acquired:f.acquired.value||null,lifespan:parseInt(f.lifespan.value)||null,rent:rentable,day:rentable?(parseFloat(f.day.value)||null):null,dayMember:rentable?(parseFloat(f.dayMember.value)||null):null,lid:parseInt(f.lid.value)||null,notes:f.notes.value.trim()};
+  if(!data.name){toast('Name ist Pflichtfeld','err');return;}
+  if(id){Object.assign(item(id),data);toast('Gespeichert');}
+  else{D.items.push({id:nid(),...data});toast('Angelegt');}
+  save();closeModal();render('items');
+}
+
+function delItem(id){
+  const itm=item(id);if(!itm)return;
+  if(D.rentals.some(r=>rLines(r).some(l=>l.iid===id)&&!['zurückgegeben','storniert'].includes(r.status))){toast('Hat aktive Verleihe – zuerst abschließen','err');return;}
+  confirm_(`"${itm.name}" löschen?`,()=>{D.items=D.items.filter(i=>i.id!==id);D.rentals=D.rentals.filter(r=>!rLines(r).every(l=>l.iid===id));save();toast('Gelöscht');render('items');});
+}
+
+// ── RENTALS PAGE ─────────────────────────────────────────────────────────────
+function renderRentals(){
+  if(rentalView==='timeline') return renderTimelineView();
+  const segs=['alle','reserviert','ausgeliehen','zurückgegeben','storniert'];
+  const list=rentalSeg==='alle'?D.rentals:D.rentals.filter(r=>r.status===rentalSeg);
+  const cnt=s=>D.rentals.filter(r=>r.status===s).length;
+  let h=`<div style="background:linear-gradient(135deg,#1E3A8A,#2563EB,#3B82F6);padding:max(16px,env(safe-area-inset-top,16px)) 16px 16px">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:22px;font-weight:800;color:#fff">Verleih</div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <button onclick="openRentalStats()" style="background:rgba(255,255,255,.18);border:none;border-radius:10px;padding:7px 12px;cursor:pointer;display:flex;align-items:center;gap:6px;color:#fff;font-size:13px;font-weight:700">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          Statistik
+        </button>
+        <button onclick="openRentalForm()" style="width:36px;height:36px;border-radius:18px;background:rgba(255,255,255,0.25);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+  <div style="background:#fff;border-bottom:1px solid var(--sep);padding:10px 16px;display:flex;flex-direction:column;gap:10px">
+    <div style="display:flex;background:#F1F5F9;border-radius:12px;padding:3px;gap:3px">
+      <button onclick="rentalView='list';render('rentals')" style="flex:1;padding:9px 6px;border-radius:9px;border:none;background:${rentalView==='list'?'#fff':'transparent'};color:${rentalView==='list'?'var(--p)':'var(--t2)'};font-weight:700;font-size:14px;cursor:pointer;box-shadow:${rentalView==='list'?'0 1px 4px rgba(0,0,0,.12)':'none'};transition:all .2s">☰ Liste</button>
+      <button onclick="rentalView='timeline';render('rentals')" style="flex:1;padding:9px 6px;border-radius:9px;border:none;background:${rentalView==='timeline'?'#fff':'transparent'};color:${rentalView==='timeline'?'var(--p)':'var(--t2)'};font-weight:700;font-size:14px;cursor:pointer;box-shadow:${rentalView==='timeline'?'0 1px 4px rgba(0,0,0,.12)':'none'};transition:all .2s">📅 Zeitleiste</button>
+    </div>
+    <div class="seg">
+      ${segs.map(s=>`<div class="seg-item${rentalSeg===s?' active':''}" onclick="rentalSeg='${s}';render('rentals')">${s==='alle'?`Alle ${D.rentals.length}`:s+(cnt(s)?` ${cnt(s)}`:'')} </div>`).join('')}
+    </div>
+  </div>
+  <div style="padding:16px;display:flex;flex-direction:column;gap:10px" class="fadeUp">`;
+
+  if(!list.length){
+    h+=`<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-text">Keine Verleihe</div><div class="empty-sub">Tippe auf + um einen neuen anzulegen</div></div>`;
+  } else {
+    list.forEach(r=>{
+      const ls=rLines(r);
+      const headline=ls.length===1?(item(ls[0].iid)?.name||'Unbekannt'):ls.map(l=>item(l.iid)?.name||'?').join(' + ');
+      const sub=ls.length===1?`${ls[0].qty}×`:`${ls.length} Gegenstände`;
+      h+=`<div class="c shadow" style="border-left:4px solid ${statusCol(r.status)}">
+        <div style="padding:14px;cursor:pointer" onclick="toggleRd(${r.id})">
+          <div style="display:flex;align-items:flex-start;gap:10px">
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:700;font-size:16px;color:var(--t1);overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${e(headline)}</div>
+              <div style="font-size:13px;color:var(--t2);margin-top:3px;display:flex;align-items:center;gap:6px">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                ${e(r.name)} · ${sub}
+              </div>
+              <div style="font-size:12px;color:var(--t3);margin-top:3px;display:flex;align-items:center;gap:6px">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
+                ${fdate(r.s)} – ${fdate(r.e)}
+              </div>
+            </div>
+            <div style="text-align:right;flex-shrink:0">
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px">
+                <span class="badge" style="background:${statusBg(r.status)};color:${statusCol(r.status)}">${r.status}</span>
+                ${r.isMember?`<span class="badge" style="background:#CFFAFE;color:#0891B2">Mitglied</span>`:''}
+              </div>
+              ${r.total?`<div style="font-weight:800;font-size:16px;color:var(--t1);margin-top:4px">${fmt(r.total)}</div>`:''}
+            </div>
+          </div>
+        </div>
+        <div id="rd-${r.id}" style="display:none;border-top:1px solid var(--sep)">
+          <div style="padding:12px 14px;display:flex;flex-direction:column;gap:8px">
+            ${r.phone?`<a href="tel:${e(r.phone)}" style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--p);text-decoration:none">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.67A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+              ${e(r.phone)}</a>`:''}
+            ${r.email?`<a href="mailto:${e(r.email)}" style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--p);text-decoration:none">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              ${e(r.email)}</a>`:''}
+            ${r.addr?`<div style="display:flex;align-items:flex-start;gap:8px;font-size:14px;color:var(--t2)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              ${e(r.addr)}</div>`:''}
+            ${r.notes?`<div style="font-size:13px;color:var(--t3);font-style:italic;padding:8px 12px;background:#F8FAFC;border-radius:10px">"${e(r.notes)}"</div>`:''}
+          </div>
+          ${rentalCostBreakdown(r)}
+          <div style="display:flex;border-top:1px solid var(--sep)">
+            ${r.status==='reserviert'?`<button onclick="setStatus(${r.id},'ausgeliehen')" style="flex:1;padding:13px 8px;background:none;border:none;font-size:13px;font-weight:700;color:var(--p);cursor:pointer">✓ Ausgeliehen</button><div style="width:1px;background:var(--sep)"></div>`:''}
+            ${r.status==='ausgeliehen'?`<button onclick="setStatus(${r.id},'zurückgegeben')" style="flex:1;padding:13px 8px;background:none;border:none;font-size:13px;font-weight:700;color:var(--ok);cursor:pointer">✓ Zurückgegeben</button><div style="width:1px;background:var(--sep)"></div>`:''}
+            <button onclick="printRentalSlip(${r.id})" style="flex:1;padding:13px 8px;background:none;border:none;font-size:13px;font-weight:600;color:var(--p);cursor:pointer">📄 Schein</button>
+            <div style="width:1px;background:var(--sep)"></div>
+            <button onclick="openRentalForm(${r.id})" style="flex:1;padding:13px 8px;background:none;border:none;font-size:13px;font-weight:600;color:var(--t2);cursor:pointer">Bearbeiten</button>
+            <div style="width:1px;background:var(--sep)"></div>
+            <button onclick="delRental(${r.id})" style="flex:1;padding:13px 8px;background:none;border:none;font-size:13px;font-weight:600;color:var(--err);cursor:pointer">Löschen</button>
+          </div>
+        </div>
+      </div>`;
+    });
+  }
+  h+=`</div><div style="height:8px"></div>`;
+  return h;
+}
+
+function rentalCostBreakdown(r){
+  if(!r.s||!r.e)return '';
+  const ls=rLines(r);
+  const numDays=days(r.s,r.e);
+  const hasFee=r.baseFeeEnabled!==false&&D.settings?.baseFee;
+  const lineRows=ls.map(l=>{
+    const itm=item(l.iid);if(!itm)return '';
+    const p=r.isMember&&itm.dayMember?itm.dayMember:itm.day;
+    const lineTotal=p?p*(l.qty||1)*numDays:null;
+    return `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:5px 0;border-bottom:1px solid var(--sep)">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e(itm.name)}</div>
+        <div style="font-size:11px;color:var(--t3)">${l.qty||1}× · ${numDays} Tag${numDays!==1?'e':''} · ${p?fmt(p)+'/Tag':'kein Preis'}</div>
+      </div>
+      <div style="font-size:13px;font-weight:700;color:var(--t1);flex-shrink:0">${lineTotal?fmt(lineTotal):'–'}</div>
+    </div>`;
+  }).join('');
+  const feeRow=hasFee?`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--sep)">
+    <div style="font-size:13px;color:var(--t2)">Grundgebühr</div>
+    <div style="font-size:13px;font-weight:700;color:var(--t1)">${fmt(D.settings.baseFee)}</div>
+  </div>`:'';
+  const totalRow=r.total!=null?`<div style="display:flex;justify-content:space-between;padding:8px 0 2px">
+    <div style="font-size:13px;font-weight:700;color:var(--t1)">Gesamt</div>
+    <div style="font-size:15px;font-weight:800;color:var(--p)">${fmt(r.total)}</div>
+  </div>`:'';
+  return `<div style="padding:10px 14px;background:#F8FAFC;border-top:1px solid var(--sep)">${lineRows}${feeRow}${totalRow}</div>`;
+}
+
+function toggleRd(id){
+  const el=document.getElementById(`rd-${id}`);
+  if(el) el.style.display=el.style.display==='none'?'block':'none';
+}
+function setStatus(id,status){
+  const r=D.rentals.find(x=>x.id===id);if(!r)return;
+  r.status=status;save();toast(`Status: ${status}`);render('rentals');
+}
+
+// ── TIMELINE VIEW ─────────────────────────────────────────────────────────────
+function renderTimelineView(){
+  const CELL=36,LEFT=110,DAYS_BEFORE=7,TOTAL=56;
+  const now=new Date();now.setHours(0,0,0,0);
+  const toISO=d=>d.toISOString().split('T')[0];
+  const todayStr=toISO(now);
+  const DAY_NAMES=['So','Mo','Di','Mi','Do','Fr','Sa'];
+  const MON_NAMES=['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+
+  // Build date array
+  const dates=[];
+  for(let i=0;i<TOTAL;i++){const d=new Date(now);d.setDate(d.getDate()-DAYS_BEFORE+i);dates.push(d);}
+
+  // Month spans for top header
+  const months=[];
+  dates.forEach((d,i)=>{
+    const key=d.getFullYear()+'-'+d.getMonth();
+    if(!months.length||months[months.length-1].key!==key)
+      months.push({key,label:MON_NAMES[d.getMonth()]+' '+d.getFullYear(),start:i,count:1});
+    else months[months.length-1].count++;
+  });
+
+  const rentable=D.items.filter(i=>i.rent);
+  const active=D.rentals.filter(r=>r.status!=='storniert');
+
+  function rentalForItemDay(iid,ds){
+    return active.find(r=>rLines(r).some(l=>l.iid===iid)&&r.s<=ds&&r.e>=ds);
+  }
+
+  // Month header row
+  let mhCells=`<th style="position:sticky;left:0;z-index:4;background:#F8FAFC;min-width:${LEFT}px;width:${LEFT}px;border-right:2px solid var(--sep);border-bottom:1px solid var(--sep)"></th>`;
+  months.forEach(m=>{
+    mhCells+=`<th colspan="${m.count}" style="text-align:left;padding:6px 8px;font-size:11px;font-weight:700;color:var(--t2);background:#F8FAFC;border-right:1px solid var(--sep);border-bottom:1px solid var(--sep);letter-spacing:.4px;white-space:nowrap">${m.label}</th>`;
+  });
+
+  // Day header row
+  let dhCells=`<th style="position:sticky;left:0;z-index:4;background:#fff;min-width:${LEFT}px;width:${LEFT}px;border-right:2px solid var(--sep);border-bottom:2px solid var(--sep)"></th>`;
+  dates.forEach(d=>{
+    const ds=toISO(d),isToday=ds===todayStr,isWE=d.getDay()===0||d.getDay()===6;
+    dhCells+=`<th style="min-width:${CELL}px;width:${CELL}px;padding:3px 0;text-align:center;border-right:1px solid var(--sep);border-bottom:2px solid ${isToday?'var(--p)':'var(--sep)'};background:${isToday?'#EFF6FF':isWE?'#FAFAFA':'#fff'}">
+      <div style="font-size:9px;font-weight:600;color:${isToday?'var(--p)':isWE?'var(--t3)':'var(--t3)'}">${DAY_NAMES[d.getDay()]}</div>
+      <div style="font-size:12px;font-weight:${isToday?800:600};color:${isToday?'var(--p)':isWE?'var(--t2)':'var(--t1)'};line-height:1.3">${d.getDate()}</div>
+    </th>`;
+  });
+
+  // Item rows
+  let rows='';
+  if(!rentable.length){
+    rows=`<tr><td colspan="${TOTAL+1}" style="padding:40px;text-align:center;color:var(--t3);font-size:14px">Keine verleihbaren Artikel</td></tr>`;
+  } else {
+    rentable.forEach((itm,ri)=>{
+      const c=cat(itm.cid)||{color:'#94A3B8',emoji:'📦'};
+      let cells='';
+      let prevRentalId=null;
+      dates.forEach((d,di)=>{
+        const ds=toISO(d),isToday=ds===todayStr,isWE=d.getDay()===0||d.getDay()===6;
+        const r=rentalForItemDay(itm.id,ds);
+        let bg=isToday?'#DBEAFE30':isWE?'#FAFAFA':'#fff';
+        let content='';
+        if(r){
+          bg=statusBg(r.status);
+          // Show borrower name at start of rental (or at first visible day)
+          if(r.s===ds||(di===0&&r.s<ds)){
+            const lbl=r.name.split(' ')[0];
+            content=`<span style="font-size:9px;font-weight:700;color:${statusCol(r.status)};white-space:nowrap;position:absolute;left:3px;right:2px;overflow:hidden;text-overflow:ellipsis;top:50%;transform:translateY(-50%)">${e(lbl)}</span>`;
+          }
+        }
+        const rBorder=r&&di<TOTAL-1&&toISO(dates[di+1])<=r.e?`1px solid ${statusCol(r.status)}30`:'1px solid var(--sep)';
+        cells+=`<td style="min-width:${CELL}px;width:${CELL}px;background:${bg};border-right:${rBorder};border-bottom:1px solid var(--sep);padding:0;position:relative;cursor:${r?'pointer':'default'}"
+          ${r?`onclick="tlRentalTap(${r.id})"`:''}>
+          <div style="height:32px"></div>${content}
+        </td>`;
+        prevRentalId=r?.id||null;
+      });
+      rows+=`<tr>
+        <td style="position:sticky;left:0;z-index:2;background:#fff;min-width:${LEFT}px;width:${LEFT}px;padding:6px 10px;border-right:2px solid var(--sep);border-bottom:1px solid var(--sep)">
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:14px">${c.emoji}</span>
+            <div style="min-width:0">
+              <div style="font-size:11px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:${LEFT-40}px">${e(itm.name)}</div>
+              <div style="font-size:10px;color:var(--t3)">${itm.qty}×</div>
+            </div>
+          </div>
+        </td>${cells}
+      </tr>`;
+    });
+  }
+
+  // Legend & today marker scroll
+  const scrollLeft=Math.max(0,(DAYS_BEFORE-2)*CELL);
+
+  let h=`<div style="background:linear-gradient(135deg,#1E3A8A,#2563EB,#3B82F6);padding:max(16px,env(safe-area-inset-top,16px)) 16px 16px">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:22px;font-weight:800;color:#fff">Verleih</div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <button onclick="openRentalStats()" style="background:rgba(255,255,255,.18);border:none;border-radius:10px;padding:7px 12px;cursor:pointer;display:flex;align-items:center;gap:6px;color:#fff;font-size:13px;font-weight:700">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          Statistik
+        </button>
+        <button onclick="openRentalForm()" style="width:36px;height:36px;border-radius:18px;background:rgba(255,255,255,0.25);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+  <div style="background:#fff;border-bottom:1px solid var(--sep);padding:10px 16px">
+    <div style="display:flex;background:#F1F5F9;border-radius:12px;padding:3px;gap:3px">
+      <button onclick="rentalView='list';render('rentals')" style="flex:1;padding:9px 6px;border-radius:9px;border:none;background:transparent;color:var(--t2);font-weight:700;font-size:14px;cursor:pointer">☰ Liste</button>
+      <button onclick="rentalView='timeline';render('rentals')" style="flex:1;padding:9px 6px;border-radius:9px;border:none;background:#fff;color:var(--p);font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.12)">📅 Zeitleiste</button>
+    </div>
+  </div>
+  <div id="tl-scroll" style="overflow-x:auto;-webkit-overflow-scrolling:touch;background:#fff">
+    <table style="border-collapse:collapse;background:#fff">
+      <thead>
+        <tr>${mhCells}</tr>
+        <tr>${dhCells}</tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>
+  <div style="padding:12px 16px 4px;display:flex;flex-wrap:wrap;gap:12px;border-top:1px solid var(--sep)">
+    ${['reserviert','ausgeliehen','zurückgegeben'].map(s=>`<div style="display:flex;align-items:center;gap:5px">
+      <div style="width:14px;height:14px;border-radius:4px;background:${statusBg(s)};border:1.5px solid ${statusCol(s)}40"></div>
+      <span style="font-size:12px;color:var(--t2);font-weight:600">${s}</span>
+    </div>`).join('')}
+  </div>
+  <div id="tl-detail" style="padding:0 16px"></div>
+  <div style="height:8px"></div>`;
+
+  // Scroll to today after render
+  setTimeout(()=>{const el=document.getElementById('tl-scroll');if(el)el.scrollLeft=scrollLeft;},50);
+  return h;
+}
+
+function tlRentalTap(id){
+  const r=D.rentals.find(x=>x.id===id);if(!r)return;
+  const det=document.getElementById('tl-detail');if(!det)return;
+  const ls=rLines(r);
+  const names=ls.map(l=>item(l.iid)?.name||'?').join(', ');
+  const already=det.dataset.open===String(id);
+  if(already){det.innerHTML='';det.dataset.open='';return;}
+  det.dataset.open=String(id);
+  det.innerHTML=`<div class="c shadow" style="margin:10px 0;border-left:4px solid ${statusCol(r.status)}">
+    <div style="padding:14px">
+      <div style="font-weight:700;font-size:15px;color:var(--t1);margin-bottom:4px">${e(names)}</div>
+      <div style="font-size:13px;color:var(--t2);margin-bottom:6px">${e(r.name)}</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <span class="badge" style="background:${statusBg(r.status)};color:${statusCol(r.status)}">${r.status}</span>
+        ${r.isMember?`<span class="badge" style="background:#CFFAFE;color:#0891B2">Mitglied</span>`:''}
+        <span style="font-size:13px;color:var(--t3)">${fdate(r.s)} – ${fdate(r.e)}</span>
+        ${r.total?`<span style="font-size:14px;font-weight:800;color:var(--t1)">${fmt(r.total)}</span>`:''}
+      </div>
+      ${ls.length>1?`<div style="font-size:12px;color:var(--t3);margin-top:6px">${ls.map(l=>`${item(l.iid)?.name||'?'} ${l.qty}×`).join(' · ')}</div>`:''}
+    </div>
+    <div style="display:flex;border-top:1px solid var(--sep)">
+      ${r.status==='reserviert'?`<button onclick="setStatus(${id},'ausgeliehen');renderTimelineView&&render('rentals')" style="flex:1;padding:12px 6px;background:none;border:none;font-size:13px;font-weight:700;color:var(--p);cursor:pointer">✓ Ausgeliehen</button><div style="width:1px;background:var(--sep)"></div>`:''}
+      ${r.status==='ausgeliehen'?`<button onclick="setStatus(${id},'zurückgegeben');render('rentals')" style="flex:1;padding:12px 6px;background:none;border:none;font-size:13px;font-weight:700;color:var(--ok);cursor:pointer">✓ Zurückgegeben</button><div style="width:1px;background:var(--sep)"></div>`:''}
+      <button onclick="closeModal();setTimeout(()=>openRentalForm(${id}),360)" style="flex:1;padding:12px 6px;background:none;border:none;font-size:13px;font-weight:600;color:var(--t2);cursor:pointer">Bearbeiten</button>
+    </div>
+  </div>`;
+}
+
+// ── RENTAL FORM ───────────────────────────────────────────────────────────────
+let rfLines=[];// [{iid,qty}]
+
+function rfRenderLines(){
+  const wrap=document.getElementById('rf-lines');if(!wrap)return;
+  wrap.innerHTML=rfLines.map((l,idx)=>{
+    const itm=l.iid?item(l.iid):null;
+    const c=itm?(cat(itm.cid)||{emoji:'📦'}):null;
+    const btnLabel=itm?`${c.emoji} ${e(itm.name)}`:'– Gegenstand wählen –';
+    const btnColor=itm?'var(--t1)':'var(--t3)';
+    return `<div style="display:flex;gap:8px;align-items:flex-end;margin-bottom:8px" id="rfline-${idx}">
+      <div class="field" style="flex:1;min-width:0">
+        ${idx===0?'<label class="lbl">Gegenstand *</label>':''}
+        <button type="button" onclick="openItemPicker(${idx})" class="inp" style="text-align:left;display:flex;align-items:center;justify-content:space-between;gap:6px;cursor:pointer;color:${btnColor};padding:12px 14px">
+          <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1">${btnLabel}</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2.5" style="flex-shrink:0"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+      <div class="field" style="flex-shrink:0">
+        ${idx===0?'<label class="lbl">Menge</label>':''}
+        <div style="display:flex;align-items:center;gap:6px">
+          <input class="inp" type="number" min="1" value="${l.qty||1}" style="width:58px;text-align:center;padding:12px 6px;flex-shrink:0"
+            oninput="rfLines[${idx}].qty=parseInt(this.value)||1;rfCalcAll();rfAvailAll();rfUpdateQtyInd()">
+          <div id="rf-qind-${idx}" style="font-size:12px;font-weight:700;color:var(--t3);white-space:nowrap;min-width:48px"></div>
+        </div>
+      </div>
+      ${rfLines.length>1?`<button type="button" onclick="rfRemoveLine(${idx})" style="width:40px;height:48px;border-radius:12px;background:#FEE2E2;border:none;cursor:pointer;color:var(--err);font-size:20px;flex-shrink:0;${idx===0?'margin-top:22px':''}">×</button>`:''}
+    </div>`;
+  }).join('');
+  rfCalcAll();rfAvailAll();rfUpdateQtyInd();
+}
+
+function rfUpdateQtyInd(){
+  const s=rfSelStart,e_=rfSelEnd;
+  rfLines.forEach((l,idx)=>{
+    const el=document.getElementById(`rf-qind-${idx}`);if(!el||!l.iid)return;
+    const itm=item(l.iid);if(!itm)return;
+    if(!s||!e_){el.textContent=`von ${itm.qty}`;el.style.color='var(--t3)';return;}
+    const av=avail(l.iid,s,e_,l.qty||1,window._rfEditId);
+    el.textContent=`/ ${Math.max(0,av.n)} frei`;
+    el.style.color=av.ok?'var(--ok)':'var(--err)';
+  });
+}
+
+// ── ITEM PICKER ───────────────────────────────────────────────────────────────
+let _ipIdx=0,_ipCat=0;
+
+function openItemPicker(idx){
+  _ipIdx=idx;_ipCat=0;
+  const inp=document.getElementById('ip-search');if(inp)inp.value='';
+  const ov2=document.getElementById('ov2'),pk=document.getElementById('item-picker');
+  ov2.classList.add('show');
+  pk.style.transform='translateY(0)';pk.style.pointerEvents='all';pk.style.visibility='visible';
+  ipRender();
+}
+function closeItemPicker(){
+  const ov2=document.getElementById('ov2'),pk=document.getElementById('item-picker');
+  ov2.classList.remove('show');
+  pk.style.transform='';pk.style.pointerEvents='none';pk.style.visibility='hidden';
+}
+
+function ipRender(){
+  const q=(document.getElementById('ip-search')?.value||'').toLowerCase();
+  // Category chips
+  const catWrap=document.getElementById('ip-cats');
+  if(catWrap){
+    catWrap.innerHTML=`<button class="chip" onclick="_ipCat=0;ipRender()" style="background:${!_ipCat?'var(--p)':'#fff'};color:${!_ipCat?'#fff':'var(--t2)'};border-color:${!_ipCat?'var(--p)':'var(--sep)'}">Alle</button>`
+      +D.categories.map(c=>`<button class="chip" onclick="_ipCat=${c.id};ipRender()" style="background:${_ipCat===c.id?c.color:'#fff'};color:${_ipCat===c.id?'#fff':'var(--t2)'};border-color:${_ipCat===c.id?c.color:'var(--sep)'}">${c.emoji} ${e(c.name)}</button>`).join('');
+  }
+  // Item list
+  const listWrap=document.getElementById('ip-list');if(!listWrap)return;
+  const filtered=D.items.filter(i=>i.rent&&(!_ipCat||i.cid===_ipCat)&&(!q||(i.name+(i.desc||'')).toLowerCase().includes(q)));
+  if(!filtered.length){listWrap.innerHTML=`<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-text">Keine Gegenstände</div><div class="empty-sub">Andere Kategorie oder Suchbegriff versuchen</div></div>`;return;}
+  const s=rfSelStart,e_=rfSelEnd;
+  const curIid=rfLines[_ipIdx]?.iid;
+  listWrap.innerHTML=filtered.map(itm=>{
+    const c=cat(itm.cid)||{color:'#94A3B8',emoji:'📦',name:'–'};
+    const isSel=itm.id===curIid;
+    let avBadge='';
+    if(s&&e_){
+      const av=avail(itm.id,s,e_,1,window._rfEditId);
+      const free=Math.max(0,av.n);
+      avBadge=`<span style="font-size:12px;font-weight:700;padding:2px 8px;border-radius:10px;background:${free>0?'#DCFCE7':'#FEE2E2'};color:${free>0?'var(--ok)':'var(--err)'}">${free>0?`${free} frei`:'ausgebucht'}</span>`;
+    }
+    return `<div onclick="rfPickItem(${itm.id})" style="display:flex;align-items:center;gap:12px;padding:13px 14px;background:${isSel?'#EFF6FF':'#fff'};border-radius:14px;margin-bottom:8px;cursor:pointer;border:1.5px solid ${isSel?'var(--p)':'var(--sep)'}">
+      <div style="width:44px;height:44px;border-radius:12px;background:${c.color}18;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">${c.emoji}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;color:var(--t1);font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e(itm.name)}</div>
+        <div style="font-size:12px;color:var(--t2);margin-top:2px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span>${e(c.name)} · Bestand: ${itm.qty}×</span>${avBadge}
+        </div>
+      </div>
+      ${isSel?`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--p)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>`}
+    </div>`;
+  }).join('');
+}
+
+function rfPickItem(iid){
+  rfLines[_ipIdx]={...rfLines[_ipIdx],iid};
+  closeItemPicker();
+  rfRenderLines();
+}
+
+function rfAddLine(){rfLines.push({iid:0,qty:1});rfRenderLines();openItemPicker(rfLines.length-1);}
+function rfRemoveLine(idx){rfLines.splice(idx,1);rfRenderLines();}
+
+// ── CALENDAR RANGE PICKER ────────────────────────────────────────────────────
+let rfSelStart=null,rfSelEnd=null,rfCalYear=0,rfCalMonth=0;
+const CAL_MON=['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+const CAL_DAY=['Mo','Di','Mi','Do','Fr','Sa','So'];
+
+function rfCalInit(s,e_){
+  rfSelStart=s||null;rfSelEnd=e_||null;
+  const ref=s?new Date(s):new Date();
+  rfCalYear=ref.getFullYear();rfCalMonth=ref.getMonth();
+  rfCalRender();
+}
+
+function rfCalRender(){
+  const wrap=document.getElementById('rf-cal');if(!wrap)return;
+  const now=new Date();now.setHours(0,0,0,0);
+  const toISO=d=>d.toISOString().split('T')[0];
+  const todayStr=toISO(now);
+  const first=new Date(rfCalYear,rfCalMonth,1);
+  const last=new Date(rfCalYear,rfCalMonth+1,0);
+  let startWd=first.getDay()-1;if(startWd<0)startWd=6;
+  const cells=[];
+  for(let i=0;i<startWd;i++)cells.push(null);
+  for(let d=1;d<=last.getDate();d++)cells.push(toISO(new Date(rfCalYear,rfCalMonth,d)));
+  while(cells.length%7!==0)cells.push(null);
+
+  const isSingle=rfSelStart&&rfSelStart===rfSelEnd;
+  const hasRange=rfSelStart&&rfSelEnd&&!isSingle;
+
+  let h=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+    <button type="button" onclick="rfCalPrev()" style="width:38px;height:38px;border-radius:10px;background:#F1F5F9;border:none;cursor:pointer;font-size:22px;color:var(--t2);line-height:1;display:flex;align-items:center;justify-content:center">‹</button>
+    <div style="font-weight:700;font-size:16px;color:var(--t1)">${CAL_MON[rfCalMonth]} ${rfCalYear}</div>
+    <button type="button" onclick="rfCalNext()" style="width:38px;height:38px;border-radius:10px;background:#F1F5F9;border:none;cursor:pointer;font-size:22px;color:var(--t2);line-height:1;display:flex;align-items:center;justify-content:center">›</button>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:2px">
+    ${CAL_DAY.map(d=>`<div style="text-align:center;font-size:11px;font-weight:700;color:var(--t3);padding:3px 0">${d}</div>`).join('')}
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(7,1fr)">`;
+
+  cells.forEach(ds=>{
+    if(!ds){h+=`<div style="height:42px"></div>`;return;}
+    const day=parseInt(ds.split('-')[2]);
+    const isToday=ds===todayStr;
+    const isStart=ds===rfSelStart;
+    const isEnd=ds===rfSelEnd;
+    const inRange=hasRange&&ds>rfSelStart&&ds<rfSelEnd;
+    // Range background strip
+    let rbg='transparent';
+    if(inRange)rbg='#DBEAFE';
+    else if(isStart&&hasRange)rbg='linear-gradient(to right,transparent 50%,#DBEAFE 50%)';
+    else if(isEnd&&hasRange)rbg='linear-gradient(to left,transparent 50%,#DBEAFE 50%)';
+    // Circle
+    const sel=isStart||isEnd;
+    h+=`<div style="background:${rbg}">
+      <div onclick="rfCalTap('${ds}')" style="height:42px;display:flex;align-items:center;justify-content:center;cursor:pointer">
+        <div style="width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:${sel||isToday?700:400};background:${sel?'var(--p)':'transparent'};color:${sel?'#fff':isToday?'var(--p)':'var(--t1)'};border:${isToday&&!sel?'2px solid var(--p)':'none'}">${day}</div>
+      </div>
+    </div>`;
+  });
+  h+=`</div>`;
+
+  // Summary
+  const sumCols=rfSelStart&&rfSelEnd?'1fr 20px 1fr 1px 60px':'1fr 20px 1fr';
+  h+=`<div style="margin-top:12px;display:grid;grid-template-columns:${sumCols};gap:6px;align-items:center;background:#F8FAFC;border-radius:12px;padding:11px 14px">
+    <div style="text-align:center">
+      <div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px">Von</div>
+      <div style="font-size:15px;font-weight:700;color:${rfSelStart?'var(--t1)':'var(--t3)'}">${rfSelStart?fdate(rfSelStart):'–'}</div>
+    </div>
+    <div style="text-align:center;color:var(--t3);font-size:14px">→</div>
+    <div style="text-align:center">
+      <div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px">Bis</div>
+      <div style="font-size:15px;font-weight:700;color:${rfSelEnd?'var(--t1)':'var(--t3)'}">${rfSelEnd?fdate(rfSelEnd):'–'}</div>
+    </div>
+    ${rfSelStart&&rfSelEnd?`<div style="background:var(--sep);width:1px;height:32px;margin:0 auto"></div>
+    <div style="text-align:center">
+      <div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px">Tage</div>
+      <div style="font-size:15px;font-weight:700;color:var(--p)">${days(rfSelStart,rfSelEnd)}</div>
+    </div>`:''}
+  </div>`;
+
+  wrap.innerHTML=h;
+  const sd=document.getElementById('rf-sd'),ed=document.getElementById('rf-ed');
+  if(sd)sd.value=rfSelStart||'';
+  if(ed)ed.value=rfSelEnd||'';
+  rfCalcAll();rfAvailAll();rfUpdateQtyInd();
+}
+
+function rfCalTap(ds){
+  if(!rfSelStart||(rfSelStart&&rfSelEnd)){rfSelStart=ds;rfSelEnd=null;}
+  else if(ds<rfSelStart){rfSelStart=ds;rfSelEnd=null;}
+  else{rfSelEnd=ds;}
+  rfCalRender();
+}
+function rfCalPrev(){rfCalMonth--;if(rfCalMonth<0){rfCalMonth=11;rfCalYear--;}rfCalRender();}
+function rfCalNext(){rfCalMonth++;if(rfCalMonth>11){rfCalMonth=0;rfCalYear++;}rfCalRender();}
+
+function openRentalForm(id=null,prefillIid=null){
+  const r=id?D.rentals.find(x=>x.id===id):null;
+  rfLines=r?rLines(r).map(l=>({...l})):[{iid:prefillIid||0,qty:1}];
+  window._rfEditId=id||null;
+  let h=`<form onsubmit="saveRental(event,${id||'null'})"><div style="display:flex;flex-direction:column;gap:14px">
+    <div id="rf-lines"></div>
+    <button type="button" class="btn btn-s" onclick="rfAddLine()" style="align-self:flex-start;padding:10px 16px;font-size:14px">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Artikel hinzufügen
+    </button>
+    <div class="field">
+      <label class="lbl">Zeitraum *</label>
+      <div id="rf-cal" style="background:#fff;border:1.5px solid var(--sep);border-radius:14px;padding:14px"></div>
+      <input type="hidden" name="sd" id="rf-sd">
+      <input type="hidden" name="ed" id="rf-ed">
+    </div>
+    <div class="igroup" style="padding:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div><div style="font-weight:600;font-size:15px">Vereinsmitglied</div><div style="font-size:13px;color:var(--t2)">Mitgliederpreise anwenden</div></div>
+        <div class="tgl${r?.isMember?' on':''}" id="rf-member" onclick="this.classList.toggle('on');rfCalcAll()"></div>
+      </div>
+    </div>
+    <div class="igroup" style="padding:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-weight:600;font-size:15px">Grundgebühr</div>
+          <div style="font-size:13px;color:var(--t2)">${D.settings?.baseFee?fmt(D.settings.baseFee)+' Bearbeitungsgebühr':'Nicht festgelegt'}</div>
+        </div>
+        <div class="tgl${r?.baseFeeEnabled===false?'':' on'}" id="rf-basefee" onclick="this.classList.toggle('on');rfCalcAll()"></div>
+      </div>
+    </div>
+    <div class="field"><label class="lbl">Preismodell</label><select class="inp" name="pt" id="rf-pt" onchange="rfCalcAll()">
+      <option value="daily"${(!r||r.pt==='daily'||r.pt==='weekend')?' selected':''}>Tagespreis</option>
+      <option value="custom"${r?.pt==='custom'?' selected':''}>Individuell</option>
+      <option value="free"${r?.pt==='free'?' selected':''}>Kostenlos</option>
+    </select></div>
+    <div id="rf-custom" style="display:none" class="field"><label class="lbl">Gesamtpreis (€)</label><input class="inp" type="number" step="0.01" name="total" value="${r?.total||''}"></div>
+    <div id="rf-breakdown"></div>
+    <div id="rf-avail" style="display:none;border-radius:12px;padding:12px 14px;font-size:14px;font-weight:600"></div>
+    ${r?`<div class="field"><label class="lbl">Status</label><select class="inp" name="status">
+      ${['reserviert','ausgeliehen','zurückgegeben','storniert'].map(s=>`<option${r.status===s?' selected':''}>${s}</option>`).join('')}
+    </select></div>`:''}
+    <div style="background:#F8FAFC;border-radius:16px;padding:14px">
+      <div style="font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Kontakt Entleiher</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <input class="inp" name="bname" required placeholder="Name *" value="${e(r?.name||'')}">
+        <input class="inp" type="tel" name="bphone" placeholder="Telefon" value="${e(r?.phone||'')}">
+        <input class="inp" type="email" name="bemail" placeholder="E-Mail" value="${e(r?.email||'')}">
+        <textarea class="inp" name="baddr" rows="2" placeholder="Adresse">${e(r?.addr||'')}</textarea>
+      </div>
+    </div>
+    <div class="field"><label class="lbl">Notizen</label><textarea class="inp" name="notes" rows="2" placeholder="Interne Notizen...">${e(r?.notes||'')}</textarea></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-bottom:8px">
+      <button type="button" class="btn btn-s" onclick="closeModal()">Abbrechen</button>
+      <button type="submit" class="btn btn-p">Speichern</button>
+    </div>
+  </div></form>`;
+  openModal(r?'Verleih bearbeiten':'Neuer Verleihvorgang',h);
+  setTimeout(()=>{rfRenderLines();rfCalInit(r?.s||null,r?.e||null);rfUpdateBreakdown();},50);
+}
+
+function rfCalcAll(){
+  const sd=document.getElementById('rf-sd'),ed=document.getElementById('rf-ed'),pt_el=document.getElementById('rf-pt');
+  const cp=document.getElementById('rf-custom');
+  if(!sd||!ed||!pt_el)return;
+  const pt=pt_el.value;
+  if(cp)cp.style.display=pt==='custom'?'block':'none';
+  rfUpdateBreakdown();
+}
+
+function rfUpdateBreakdown(){
+  const el=document.getElementById('rf-breakdown');if(!el)return;
+  const sd=document.getElementById('rf-sd')?.value;
+  const ed=document.getElementById('rf-ed')?.value;
+  const pt=document.getElementById('rf-pt')?.value;
+  const isMember=document.getElementById('rf-member')?.classList.contains('on');
+  const baseFeeOn=document.getElementById('rf-basefee')?.classList.contains('on');
+  const lines=rfLines.filter(l=>l.iid);
+  if(!sd||!ed||!lines.length||pt==='custom'){el.innerHTML='';return;}
+  const numDays=days(sd,ed);
+  let linesHtml='',linesTotal=0;
+  lines.forEach(l=>{
+    const itm=item(l.iid);if(!itm)return;
+    const qty=l.qty||1;
+    const p=pt==='free'?0:(isMember&&itm.dayMember?itm.dayMember:itm.day);
+    const lineTotal=p?p*qty*numDays:0;
+    linesTotal+=lineTotal;
+    linesHtml+=`<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:5px 0;border-bottom:1px solid var(--sep)">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e(itm.name)}</div>
+        <div style="font-size:11px;color:var(--t3)">${qty}× · ${numDays} Tag${numDays!==1?'e':''} · ${p?fmt(p)+'/Tag':'kostenlos'}</div>
+      </div>
+      <div style="font-size:13px;font-weight:700;color:var(--t1);flex-shrink:0">${lineTotal?fmt(lineTotal):'–'}</div>
+    </div>`;
+  });
+  const fee=pt!=='free'&&baseFeeOn&&D.settings?.baseFee?D.settings.baseFee:0;
+  const feeHtml=fee?`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--sep)">
+    <div style="font-size:13px;color:var(--t2)">Grundgebühr</div>
+    <div style="font-size:13px;font-weight:700;color:var(--t1)">${fmt(fee)}</div>
+  </div>`:'';
+  const total=linesTotal+fee;
+  const totalHtml=total?`<div style="display:flex;justify-content:space-between;padding:8px 0 2px">
+    <div style="font-size:13px;font-weight:700;color:var(--t1)">Gesamt</div>
+    <div style="font-size:15px;font-weight:800;color:var(--p)">${fmt(total)}</div>
+  </div>`:'';
+  el.innerHTML=`<div style="background:#F8FAFC;border-radius:12px;padding:10px 14px;border:1px solid var(--sep)">${linesHtml}${feeHtml}${totalHtml}</div>`;
+}
+
+function rfAvailAll(){
+  const sd=document.getElementById('rf-sd'),ed=document.getElementById('rf-ed'),el=document.getElementById('rf-avail');
+  if(!el)return;
+  const s=sd?.value,e_=ed?.value;
+  if(!s||!e_||rfLines.every(l=>!l.iid)){el.style.display='none';return;}
+  const lines=rfLines.filter(l=>l.iid);
+  const results=lines.map(l=>({name:item(l.iid)?.name||'?',...avail(l.iid,s,e_,l.qty||1,window._rfEditId||null)}));
+  const allOk=results.every(r=>r.ok);
+  el.style.display='block';
+  if(allOk){
+    el.style.background='#DCFCE7';el.style.color='#15803D';
+    el.innerHTML=results.length===1
+      ?`<div style="display:flex;align-items:center;gap:8px"><span style="font-size:18px">✓</span> ${results[0].name}: ${results[0].n} von ${results[0].total} verfügbar</div>`
+      :`<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span>✓</span> Alle Artikel verfügbar</div>`
+      +results.map(r=>`<div style="font-size:13px;padding-left:4px">• ${e(r.name)}: ${r.n}/${r.total}</div>`).join('');
+  } else {
+    el.style.background='#FEE2E2';el.style.color='#DC2626';
+    el.innerHTML=`<div style="margin-bottom:4px">Verfügbarkeit:</div>`
+      +results.map(r=>`<div style="font-size:13px">${r.ok?'✓':'✗'} ${e(r.name)}: ${r.n} von ${r.total} frei</div>`).join('');
+  }
+}
+
+function saveRental(ev,id){
+  ev.preventDefault();const f=ev.target;
+  const lines=rfLines.filter(l=>l.iid&&l.iid>0);
+  if(!lines.length){toast('Mindestens einen Gegenstand wählen','err');return;}
+  const s=f.sd.value,e_=f.ed.value;
+  if(!s||!e_){toast('Bitte Zeitraum im Kalender wählen','err');return;}
+  if(e_<s){toast('Enddatum vor Startdatum','err');return;}
+  // Check availability for each line
+  for(const l of lines){
+    const av=avail(l.iid,s,e_,l.qty||1,id);
+    if(!av.ok){const itm=item(l.iid);toast(`${itm?.name||'?'}: nur ${av.n} verfügbar`,'err');return;}
+  }
+  const pt=f.pt.value;
+  const isMember=document.getElementById('rf-member')?.classList.contains('on')||false;
+  const baseFeeEnabled=document.getElementById('rf-basefee')?.classList.contains('on')!==false;
+  let total=null;
+  if(pt==='custom') total=parseFloat(f.total?.value)||null;
+  else if(pt==='free') total=0;
+  else {
+    const numDays=days(s,e_);
+    total=lines.reduce((sum,l)=>{
+      const itm=item(l.iid);if(!itm)return sum;
+      const qty=l.qty||1;
+      const p=isMember&&itm.dayMember?itm.dayMember:itm.day;
+      return sum+(p?p*numDays*qty:0);
+    },0);
+    if(baseFeeEnabled&&D.settings?.baseFee) total+=D.settings.baseFee;
+    if(total===0)total=null;
+  }
+  const data={lines,isMember,baseFeeEnabled,name:f.bname.value.trim(),phone:f.bphone.value.trim(),email:f.bemail.value.trim(),addr:f.baddr.value.trim(),s,e:e_,status:f.status?.value||'reserviert',pt,total,notes:f.notes.value.trim()};
+  if(!data.name){toast('Name ist Pflichtfeld','err');return;}
+  if(id){const existing=D.rentals.find(r=>r.id===id);delete existing.iid;delete existing.qty;Object.assign(existing,data);toast('Gespeichert');}
+  else{D.rentals.push({id:nid(),...data});toast('Verleih angelegt');}
+  save();closeModal();render('rentals');
+}
+
+function delRental(id){
+  const r=D.rentals.find(x=>x.id===id);if(!r)return;
+  confirm_(`Verleih an ${r.name} löschen?`,()=>{D.rentals=D.rentals.filter(x=>x.id!==id);save();toast('Gelöscht');render('rentals');});
+}
+
+// ── WAREHOUSES PAGE ──────────────────────────────────────────────────────────
+function renderWH(){
+  let h=`<div style="background:linear-gradient(135deg,#1E3A8A,#2563EB,#3B82F6);padding:max(16px,env(safe-area-inset-top,16px)) 16px 20px">
+    <div style="font-size:22px;font-weight:800;color:#fff">Lagerhallen</div>
+    <div style="font-size:14px;color:rgba(255,255,255,.7);margin-top:2px">${D.warehouses.length} Hallen · ${D.locations.length} Lagerplätze</div>
+  </div>
+  <div style="padding:16px;display:flex;flex-direction:column;gap:12px" class="fadeUp">
+    <button class="btn btn-p w-full" onclick="openWhForm()" style="width:100%">+ Neue Lagerhalle</button>`;
+  D.warehouses.forEach(w=>{
+    const locs=D.locations.filter(l=>l.wid===w.id);
+    h+=`<div class="c shadow">
+      <div style="padding:16px;display:flex;align-items:flex-start;gap:12px">
+        <div style="width:46px;height:46px;border-radius:14px;background:#DBEAFE;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">🏭</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:17px;font-weight:700;color:var(--t1)">${e(w.name)}</div>
+          ${w.address?`<div style="font-size:13px;color:var(--t2);margin-top:2px">📍 ${e(w.address)}</div>`:''}
+          <div style="font-size:12px;color:var(--t3);margin-top:4px">${locs.length} Lagerplatz${locs.length!==1?'e':''}</div>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button onclick="openWhForm(${w.id})" style="width:34px;height:34px;border-radius:10px;background:#F1F5F9;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--t2)" stroke-width="2.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button onclick="delWH(${w.id})" style="width:34px;height:34px;border-radius:10px;background:#FEE2E2;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--err)" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+          </button>
+        </div>
+      </div>
+      ${locs.length?`<div style="border-top:1px solid var(--sep)">
+        ${locs.map((l,i)=>{
+          const cnt=D.items.filter(it=>it.lid===l.id).length;
+          return `<div class="list-row" style="${i===locs.length-1?'border:none':''}">
+            <div style="width:36px;height:36px;border-radius:10px;background:#F8FAFC;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px">📍</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:600;color:var(--t1)">${e(l.name)}</div>
+              ${cnt?`<div style="font-size:12px;color:var(--p);margin-top:1px">${cnt} Gegenstand${cnt!==1?'e':''}</div>`:
+              `<div style="font-size:12px;color:var(--t3)">leer</div>`}
+            </div>
+            <div style="display:flex;gap:6px">
+              <button onclick="openLocForm(${w.id},${l.id})" style="width:30px;height:30px;border-radius:8px;background:#F1F5F9;border:none;cursor:pointer;font-size:13px">✏️</button>
+              <button onclick="delLoc(${l.id})" style="width:30px;height:30px;border-radius:8px;background:#FEE2E2;border:none;cursor:pointer;font-size:13px">🗑</button>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>`:''}
+      <button onclick="openLocForm(${w.id})" style="width:100%;padding:13px 16px;background:none;border:none;border-top:1px solid var(--sep);font-size:14px;color:var(--p);font-weight:700;cursor:pointer;text-align:left">+ Lagerplatz hinzufügen</button>
+    </div>`;
+  });
+  h+=`</div>`;
+  return h;
+}
+
+function openWhForm(id=null){
+  const w=id?wh(id):null;
+  openModal(w?'Lagerhalle bearbeiten':'Neue Lagerhalle',
+    `<form onsubmit="saveWH(event,${id||'null'})"><div style="display:flex;flex-direction:column;gap:14px">
+      <div class="field"><label class="lbl">Name *</label><input class="inp" name="name" required placeholder="z.B. Lagerhalle 1" value="${e(w?.name||'')}"></div>
+      <div class="field"><label class="lbl">Adresse</label><input class="inp" name="address" placeholder="Musterstraße 1, 12345 Musterstadt" value="${e(w?.address||'')}"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-bottom:8px">
+        <button type="button" class="btn btn-s" onclick="closeModal()">Abbrechen</button>
+        <button type="submit" class="btn btn-p">Speichern</button>
+      </div>
+    </div></form>`);
+}
+function saveWH(ev,id){
+  ev.preventDefault();const f=ev.target;
+  const data={name:f.name.value.trim(),address:f.address.value.trim()};
+  if(!data.name){toast('Name Pflichtfeld','err');return;}
+  if(id){Object.assign(wh(id),data);toast('Gespeichert');}
+  else{D.warehouses.push({id:nid(),...data});toast('Lagerhalle angelegt');}
+  save();closeModal();render('warehouses');
+}
+function delWH(id){
+  if(D.locations.some(l=>l.wid===id)){toast('Zuerst alle Lagerplätze löschen','err');return;}
+  confirm_(`"${wh(id)?.name}" löschen?`,()=>{D.warehouses=D.warehouses.filter(x=>x.id!==id);save();toast('Gelöscht');render('warehouses');});
+}
+function openLocForm(wid,lid=null){
+  const l=lid?loc(lid):null;
+  openModal(l?'Lagerplatz bearbeiten':'Neuer Lagerplatz',
+    `<form onsubmit="saveLoc(event,${wid},${lid||'null'})"><div style="display:flex;flex-direction:column;gap:14px">
+      <div class="field"><label class="lbl">Name *</label><input class="inp" name="name" required placeholder="z.B. Regal A" value="${e(l?.name||'')}"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-bottom:8px">
+        <button type="button" class="btn btn-s" onclick="closeModal()">Abbrechen</button>
+        <button type="submit" class="btn btn-p">Speichern</button>
+      </div>
+    </div></form>`);
+}
+function saveLoc(ev,wid,lid){
+  ev.preventDefault();const name=ev.target.name.value.trim();
+  if(!name){toast('Name Pflichtfeld','err');return;}
+  if(lid){loc(lid).name=name;toast('Gespeichert');}
+  else{D.locations.push({id:nid(),wid,name});toast('Lagerplatz angelegt');}
+  save();closeModal();render('warehouses');
+}
+function delLoc(id){
+  if(D.items.some(i=>i.lid===id)){toast('Lagerplatz noch in Verwendung','err');return;}
+  confirm_('Lagerplatz löschen?',()=>{D.locations=D.locations.filter(x=>x.id!==id);save();toast('Gelöscht');render('warehouses');});
+}
+
+// ── MORE PAGE ────────────────────────────────────────────────────────────────
+function openRentalStats(){
+  openModal('Statistik Verleih',`<div style="margin:-4px -4px 0">${renderStats()}</div>`);
+}
+function renderStats(){
+  const yr=new Date().getFullYear();
+  const validR=D.rentals.filter(r=>!['storniert'].includes(r.status));
+  const yrR=validR.filter(r=>r.s&&r.s.startsWith(yr));
+  const totalRev=validR.reduce((s,r)=>s+(r.total||0),0);
+  const yrRev=yrR.reduce((s,r)=>s+(r.total||0),0);
+  // Monthly revenue last 12 months
+  const months=[];for(let i=11;i>=0;i--){const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-i);months.push({y:d.getFullYear(),m:d.getMonth(),lbl:d.toLocaleString('de',{month:'short'}),rev:0,cnt:0});}
+  validR.forEach(r=>{if(!r.s)return;const d=new Date(r.s);const mo=months.find(m=>m.y===d.getFullYear()&&m.m===d.getMonth());if(mo){mo.rev+=(r.total||0);mo.cnt++;}});
+  const maxRev=Math.max(1,...months.map(m=>m.rev));
+  // Top items by revenue
+  const itemRev=D.items.map(itm=>{
+    const rs=validR.filter(r=>rLines(r).some(l=>l.iid===itm.id));
+    const rev=rs.reduce((s,r)=>{if(!r.total)return s;const ls=rLines(r);const tot=ls.reduce((a,x)=>a+x.qty,0);const l=ls.find(x=>x.iid===itm.id);return s+(l?r.total*(l.qty/tot):0);},0);
+    return{itm,rev,cnt:rs.length};
+  }).filter(x=>x.cnt>0).sort((a,b)=>b.rev-a.rev).slice(0,5);
+  const itemCnt=D.items.map(itm=>({itm,cnt:validR.filter(r=>rLines(r).some(l=>l.iid===itm.id)).length})).filter(x=>x.cnt>0).sort((a,b)=>b.cnt-a.cnt).slice(0,5);
+  const maxCnt=Math.max(1,...itemCnt.map(x=>x.cnt));
+  return `<div style="padding:16px;display:flex;flex-direction:column;gap:18px" class="fadeUp">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    <div style="background:linear-gradient(135deg,#2563EB,#3B82F6);border-radius:16px;padding:14px;color:#fff">
+      <div style="font-size:11px;font-weight:700;opacity:.75;text-transform:uppercase;letter-spacing:.5px">Verleihe ${yr}</div>
+      <div style="font-size:28px;font-weight:800;margin-top:4px">${yrR.length}</div>
+      <div style="font-size:12px;opacity:.7;margin-top:2px">gesamt: ${validR.length}</div>
+    </div>
+    <div style="background:linear-gradient(135deg,#059669,#10B981);border-radius:16px;padding:14px;color:#fff">
+      <div style="font-size:11px;font-weight:700;opacity:.75;text-transform:uppercase;letter-spacing:.5px">Umsatz ${yr}</div>
+      <div style="font-size:28px;font-weight:800;margin-top:4px">${fmt(yrRev)}</div>
+      <div style="font-size:12px;opacity:.7;margin-top:2px">gesamt: ${fmt(totalRev)}</div>
+    </div>
+    <div style="background:#F8FAFC;border-radius:16px;padding:14px">
+      <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px">Artikel</div>
+      <div style="font-size:28px;font-weight:800;color:var(--t1);margin-top:4px">${D.items.length}</div>
+      <div style="font-size:12px;color:var(--t3);margin-top:2px">Gesamtwert ${fmt(D.items.reduce((s,i)=>s+(i.price||0)*i.qty,0))}</div>
+    </div>
+    <div style="background:#F8FAFC;border-radius:16px;padding:14px">
+      <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px">Ø pro Verleih</div>
+      <div style="font-size:28px;font-weight:800;color:var(--t1);margin-top:4px">${validR.length?fmt(totalRev/validR.length):'–'}</div>
+      <div style="font-size:12px;color:var(--t3);margin-top:2px">Umsatz</div>
+    </div>
+  </div>
+  <div class="igroup shadow">
+    <div style="padding:12px 16px 6px;font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px">Umsatz letzte 12 Monate</div>
+    <div style="padding:8px 16px 14px">
+      <div style="display:flex;align-items:flex-end;gap:4px;height:72px">
+        ${months.map(m=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px">
+          <div style="width:100%;background:${m.rev>0?'var(--p)':'#E2E8F0'};border-radius:4px 4px 0 0;height:${Math.max(4,Math.round(m.rev/maxRev*60))}px;min-height:4px;transition:height .3s"></div>
+        </div>`).join('')}
+      </div>
+      <div style="display:flex;gap:4px;margin-top:4px">
+        ${months.map(m=>`<div style="flex:1;text-align:center;font-size:9px;color:var(--t3);font-weight:600">${m.lbl}</div>`).join('')}
+      </div>
+    </div>
+  </div>
+  ${itemRev.length?`<div class="igroup shadow">
+    <div style="padding:12px 16px 4px;font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px">Top Artikel · Umsatz</div>
+    ${itemRev.map((x,i)=>`<div class="list-row" style="${i===itemRev.length-1?'border:none':''}">
+      <div style="width:20px;font-size:13px;font-weight:800;color:var(--t3);flex-shrink:0">${i+1}</div>
+      <div style="flex:1;min-width:0"><div style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e(x.itm.name)}</div><div style="font-size:12px;color:var(--t3)">${x.cnt} Verleihe</div></div>
+      <div style="font-weight:700;color:var(--ok)">${fmt(x.rev)}</div>
+    </div>`).join('')}
+  </div>`:''}
+  ${itemCnt.length?`<div class="igroup shadow">
+    <div style="padding:12px 16px 8px;font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px">Top Artikel · Nachfrage</div>
+    ${itemCnt.map((x,i)=>`<div style="padding:6px 16px${i===itemCnt.length-1?'':';border-bottom:1px solid var(--sep)'}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${e(x.itm.name)}</div>
+        <div style="font-size:13px;font-weight:700;color:var(--p);flex-shrink:0;margin-left:8px">${x.cnt}×</div>
+      </div>
+      <div style="height:6px;background:#E2E8F0;border-radius:3px;overflow:hidden">
+        <div style="height:100%;width:${Math.round(x.cnt/maxCnt*100)}%;background:var(--p);border-radius:3px"></div>
+      </div>
+    </div>`).join('')}
+  </div>`:''}
+  <div style="height:4px"></div>`;
+}
+
+function renderMore(){
+  const catColors=['#EF4444','#F97316','#F59E0B','#10B981','#3B82F6','#6366F1','#8B5CF6','#EC4899','#64748B'];
+  let h=`<div style="background:linear-gradient(135deg,#1E3A8A,#2563EB,#3B82F6);padding:max(16px,env(safe-area-inset-top,16px)) 16px 20px">
+    <div style="font-size:22px;font-weight:800;color:#fff">Einstellungen</div>
+  </div>
+  <div style="padding:16px;display:flex;flex-direction:column;gap:20px" class="fadeUp">
+    <div>
+      <div class="sec-hdr" style="padding:0 0 10px">Navigation</div>
+      <div class="igroup shadow">
+        <div class="srow" style="border:none;cursor:pointer" onclick="go('warehouses')">
+          <div class="srow-icon" style="background:#EFF6FF">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+          </div>
+          <div style="flex:1;font-weight:600">Lagerhallen</div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="sec-hdr" style="padding:0 0 10px">Kategorien</div>
+      <div class="igroup shadow">
+        ${D.categories.map((c,i)=>`<div class="srow" style="${i===D.categories.length-1?'border:none':''}">
+          <div class="srow-icon" style="background:${c.color}20"><span style="font-size:18px">${c.emoji||'📦'}</span></div>
+          <div style="flex:1;font-weight:600">${e(c.name)}</div>
+          <div style="font-size:13px;color:var(--t3);margin-right:8px">${D.items.filter(i=>i.cid===c.id).length} Artikel</div>
+          <div style="display:flex;gap:6px">
+            <button onclick="openCatForm(${c.id})" style="width:30px;height:30px;border-radius:8px;background:#F1F5F9;border:none;cursor:pointer;font-size:13px">✏️</button>
+            <button onclick="delCat(${c.id})" style="width:30px;height:30px;border-radius:8px;background:#FEE2E2;border:none;cursor:pointer;font-size:13px">🗑</button>
+          </div>
+        </div>`).join('')}
+        <button onclick="openCatForm()" style="width:100%;padding:14px 16px;background:none;border:none;border-top:1px solid var(--sep);font-size:14px;color:var(--p);font-weight:700;cursor:pointer;text-align:left">+ Kategorie hinzufügen</button>
+      </div>
+    </div>
+    <div>
+      <div class="sec-hdr" style="padding:0 0 10px">Allgemeine Einstellungen</div>
+      <div class="igroup shadow" style="padding:14px;display:flex;flex-direction:column;gap:12px">
+        <div class="field"><label class="lbl">Vereinsname</label><input class="inp" id="cfg-vname" value="${e(D.settings?.vereinName||'')}" placeholder="z.B. Bürgerverein Musterstadt e.V." oninput="D.settings.vereinName=this.value;save()"></div>
+        <div class="field"><label class="lbl">Vereinsadresse</label><input class="inp" id="cfg-vaddr" value="${e(D.settings?.vereinAddr||'')}" placeholder="Straße, PLZ Ort" oninput="D.settings.vereinAddr=this.value;save()"></div>
+        <div class="field"><label class="lbl">Grundgebühr pro Verleih (€)</label><input class="inp" type="number" step="0.50" id="cfg-basefee" value="${D.settings?.baseFee||''}" placeholder="z.B. 15" oninput="D.settings.baseFee=parseFloat(this.value)||0;save()"></div>
+        <div style="font-size:12px;color:var(--t3)">Bearbeitungsgebühr, die standardmäßig zu jedem Verleih addiert wird. Im Verleihformular kann sie deaktiviert werden.</div>
+      </div>
+    </div>
+    <div>
+      <div class="sec-hdr" style="padding:0 0 10px">Demo & Daten</div>
+      <div class="igroup shadow">
+        <div class="srow" style="border:none;cursor:default">
+          <div class="srow-icon" style="background:#DCFCE7">💾</div>
+          <div style="flex:1"><div style="font-weight:600">Lokaler Speicher</div><div style="font-size:13px;color:var(--t2)">Alle Daten bleiben auf diesem Gerät</div></div>
+        </div>
+      </div>
+      <button onclick="resetDemo()" class="btn btn-d" style="width:100%;margin-top:10px">🔄 Demo-Daten zurücksetzen</button>
+    </div>
+    <div class="igroup shadow" style="padding:16px">
+      <div style="font-size:13px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Info</div>
+      <div style="font-size:15px;font-weight:700;color:var(--t1)">Vereinsinventar</div>
+      <div style="font-size:14px;color:var(--t2);margin-top:4px">Inventar- & Verleihverwaltung für Bürgervereine</div>
+      <div style="font-size:13px;color:var(--t3);margin-top:8px">Dies ist eine Demo-Version ohne Serveranbindung.</div>
+    </div>
+    <div style="height:8px"></div>
+  </div>`;
+  return h;
+}
+
+function openCatForm(id=null){
+  const c=id?D.categories.find(x=>x.id===id):null;
+  const colors=['#EF4444','#F97316','#F59E0B','#10B981','#22C55E','#3B82F6','#6366F1','#8B5CF6','#EC4899','#64748B'];
+  const emojis=['⛺','🪑','⚡','🍳','📦','🔧','🎪','🚛','🎭','📋','🎉','🎸','🔊','💡','🪣','🏋️','🛖','🪵','🌡️','🧯','🪜','🛒','🧲','🔌','🪤','🏆','🧹','🚿','🛁','🔑'];
+  let h=`<form onsubmit="saveCat(event,${id||'null'})"><div style="display:flex;flex-direction:column;gap:14px">
+    <div class="field"><label class="lbl">Name *</label><input class="inp" name="name" required placeholder="z.B. Werkzeug" value="${e(c?.name||'')}"></div>
+    <div><label class="lbl">Farbe</label>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:6px">
+        ${colors.map(col=>`<button type="button" onclick="document.getElementById('ccolor').value='${col}';document.querySelectorAll('.cc-dot').forEach(d=>d.style.border='none');this.style.border='3px solid #0F172A'" class="cc-dot" style="width:36px;height:36px;border-radius:50%;background:${col};border:${c?.color===col?'3px solid #0F172A':'none'};cursor:pointer"></button>`).join('')}
+        <input type="hidden" name="color" id="ccolor" value="${c?.color||'#6366F1'}">
+      </div>
+    </div>
+    <div><label class="lbl">Emoji</label>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px">
+        ${emojis.map(em=>`<button type="button" onclick="document.getElementById('cemoji').value='${em}';document.querySelectorAll('.ce-btn').forEach(b=>b.style.background='#F1F5F9');this.style.background='#DBEAFE'" class="ce-btn" style="width:44px;height:44px;border-radius:12px;font-size:20px;background:${c?.emoji===em?'#DBEAFE':'#F1F5F9'};border:none;cursor:pointer">${em}</button>`).join('')}
+        <input type="hidden" name="emoji" id="cemoji" value="${c?.emoji||'📦'}">
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-bottom:8px">
+      <button type="button" class="btn btn-s" onclick="closeModal()">Abbrechen</button>
+      <button type="submit" class="btn btn-p">Speichern</button>
+    </div>
+  </div></form>`;
+  openModal(c?'Kategorie bearbeiten':'Neue Kategorie',h);
+}
+function saveCat(ev,id){
+  ev.preventDefault();const f=ev.target;
+  const data={name:f.name.value.trim(),color:f.color.value||'#6366F1',emoji:f.emoji.value||'📦'};
+  if(!data.name){toast('Name Pflichtfeld','err');return;}
+  if(id){Object.assign(D.categories.find(x=>x.id===id),data);toast('Gespeichert');}
+  else{D.categories.push({id:nid(),...data});toast('Kategorie angelegt');}
+  save();closeModal();render('more');
+}
+function delCat(id){
+  if(D.items.some(i=>i.cid===id)){toast('Kategorie noch in Verwendung','err');return;}
+  confirm_('Kategorie löschen?',()=>{D.categories=D.categories.filter(x=>x.id!==id);save();toast('Gelöscht');render('more');});
+}
+function resetDemo(){
+  confirm_('Alle Daten auf Demo-Zustand zurücksetzen?',()=>{
+    D=JSON.parse(JSON.stringify(DEMO));_nid=0;save();toast('Demo-Daten zurückgesetzt');go('items');
+  });
+}
+
+// ── MODAL ────────────────────────────────────────────────────────────────────
+let _startY=0,_isDrag=false;
+function openModal(title,body){
+  document.getElementById('mtitle').textContent=title;
+  document.getElementById('mbody').innerHTML=body;
+  const ov=document.getElementById('ov'),m=document.getElementById('modal');
+  ov.classList.add('show');m.classList.add('open');
+  // Swipe to close
+  const sh=m.querySelector('.sheet-handle');
+  if(sh){
+    sh.addEventListener('touchstart',e_=>{_startY=e_.touches[0].clientY;_isDrag=true;},{passive:true});
+    sh.addEventListener('touchmove',e_=>{if(!_isDrag)return;const dy=e_.touches[0].clientY-_startY;if(dy>0)m.style.transform=`translateY(${dy}px)`;},{passive:true});
+    sh.addEventListener('touchend',e_=>{if(!_isDrag)return;_isDrag=false;const dy=e_.changedTouches[0].clientY-_startY;if(dy>80)closeModal();else m.style.transform='';});
+  }
+}
+function closeModal(){
+  const ov=document.getElementById('ov'),m=document.getElementById('modal');
+  m.style.transform='';m.classList.remove('open');ov.classList.remove('show');
+  setTimeout(()=>{document.getElementById('mbody').innerHTML='';},350);
+}
+
+// ── CONFIRM ──────────────────────────────────────────────────────────────────
+function confirm_(msg,cb){
+  const d=document.getElementById('cdlg');
+  document.getElementById('cdlg-m').textContent=msg;
+  d.style.display='flex';
+  document.getElementById('cdlg-ok').onclick=()=>{d.style.display='none';cb();};
+}
+
+// ── TOAST ────────────────────────────────────────────────────────────────────
+function toast(msg,type='ok'){
+  const c=document.getElementById('toasts');
+  const el=document.createElement('div');
+  el.className='toast-el';
+  el.style.cssText=`background:${type==='err'?'#DC2626':type==='warn'?'#D97706':'#16A34A'};color:#fff;padding:12px 16px;border-radius:14px;font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px;box-shadow:0 4px 20px rgba(0,0,0,.2);pointer-events:all`;
+  el.innerHTML=`<span style="font-size:16px">${type==='err'?'✕':type==='warn'?'⚠':'✓'}</span>${msg}`;
+  c.appendChild(el);
+  setTimeout(()=>el.remove(),3300);
+}
+
+// ── VERLEIHSCHEIN PDF ────────────────────────────────────────────────────────
+function printRentalSlip(id){
+  const r=D.rentals.find(x=>x.id===id);if(!r)return;
+  const ls=rLines(r);
+  const vname=D.settings?.vereinName||'Bürgerverein';
+  const vaddr=D.settings?.vereinAddr||'';
+  const totalDays=days(r.s,r.e);
+  const isMemberText=r.isMember?' (Mitgliederpreis)':'';
+  const isFree=r.pt==='free',isCustom=r.pt==='custom';
+  const linesHtml=ls.map(l=>{
+    const itm=item(l.iid);if(!itm)return'';
+    const p=isFree?0:(r.isMember&&itm.dayMember?itm.dayMember:itm.day);
+    const lineTotal=isFree?0:(p?p*(l.qty||1)*totalDays:null);
+    return '<tr>'
+      +'<td style="padding:8px 12px;border-bottom:1px solid #e2e8f0">'+e(itm.name)+'</td>'
+      +'<td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;text-align:center">'+(l.qty||1)+'</td>'
+      +'<td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;text-align:center">'+totalDays+'</td>'
+      +'<td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;text-align:right">'+(isFree?'kostenlos':p?fmt(p)+'/Tag':'–')+'</td>'
+      +'<td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;text-align:right;font-weight:600">'+(isFree?fmt(0):lineTotal?fmt(lineTotal):'–')+'</td>'
+      +'</tr>';
+  }).join('');
+  const baseFeeRow=r.baseFeeEnabled!==false&&D.settings?.baseFee
+    ?'<tr><td colspan="4" style="padding:8px 12px;text-align:right;color:#64748b">Grundgebühr</td><td style="padding:8px 12px;text-align:right;font-weight:600">'+fmt(D.settings.baseFee)+'</td></tr>':'';
+  const html='<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><title>Verleihschein</title>'
+    +'<style>body{font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif;max-width:720px;margin:32px auto;padding:0 24px;color:#0f172a;font-size:14px}'
+    +'h1{font-size:22px;font-weight:800;margin:0}'
+    +'.hdr{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #2563eb;padding-bottom:16px;margin-bottom:24px}'
+    +'.section{margin-bottom:20px}'
+    +'.section h2{font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin:0 0 8px}'
+    +'table{width:100%;border-collapse:collapse}'
+    +'th{background:#f8fafc;padding:8px 12px;text-align:left;font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase}'
+    +'.total{font-size:18px;font-weight:800;color:#2563eb}'
+    +'.sig{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:40px}'
+    +'.sig-line{border-top:1.5px solid #cbd5e1;padding-top:6px;font-size:12px;color:#94a3b8}'
+    +'.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700}'
+    +'@media print{body{margin:0}}'
+    +'</style></head><body>'
+    +'<div class="hdr">'
+    +'<div><h1>Verleihschein</h1><div style="color:#64748b;margin-top:4px">'+vname+'</div>'+(vaddr?'<div style="color:#94a3b8;font-size:13px">'+e(vaddr)+'</div>':'')+'</div>'
+    +'<div style="text-align:right">'
+    +'<div style="font-size:12px;color:#64748b">Ausgestellt am</div>'
+    +'<div style="font-weight:700">'+new Date().toLocaleDateString('de-DE')+'</div>'
+    +'<div style="margin-top:8px"><span class="badge" style="background:'+statusBg(r.status)+';color:'+statusCol(r.status)+'">'+r.status+'</span>'+(r.isMember?'<span class="badge" style="background:#CFFAFE;color:#0891B2;margin-left:4px">Mitglied</span>':'')+'</div>'
+    +'</div></div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px">'
+    +'<div class="section"><h2>Entleiher</h2>'
+    +'<div style="font-weight:700;font-size:15px">'+e(r.name)+'</div>'
+    +(r.phone?'<div style="color:#64748b;margin-top:4px">📞 '+e(r.phone)+'</div>':'')
+    +(r.email?'<div style="color:#64748b">✉ '+e(r.email)+'</div>':'')
+    +(r.addr?'<div style="color:#64748b;margin-top:4px">'+e(r.addr)+'</div>':'')
+    +'</div>'
+    +'<div class="section"><h2>Zeitraum</h2>'
+    +'<div style="font-size:18px;font-weight:800">'+fdate(r.s)+' – '+fdate(r.e)+'</div>'
+    +'<div style="color:#64748b;margin-top:4px">'+totalDays+' Tag'+(totalDays!==1?'e':'')+'</div>'
+    +'</div></div>'
+    +'<div class="section"><h2>Gegenstände</h2>'
+    +'<table><thead><tr>'
+    +'<th>Gegenstand</th><th style="text-align:center">Menge</th><th style="text-align:center">Tage</th><th style="text-align:right">Preis/Tag</th><th style="text-align:right">Gesamt</th>'
+    +'</tr></thead><tbody>'
+    +linesHtml
+    +baseFeeRow
+    +'<tr><td colspan="4" style="padding:12px 12px 4px;text-align:right;font-weight:700">Gesamtbetrag'+isMemberText+'</td>'
+    +'<td style="padding:12px 12px 4px;text-align:right"><span class="total">'+(r.total!=null?fmt(r.total):'–')+'</span></td></tr>'
+    +'</tbody></table></div>'
+    +(r.notes?'<div class="section"><h2>Notizen</h2><div style="background:#f8fafc;border-radius:8px;padding:12px;color:#475569">'+e(r.notes)+'</div></div>':'')
+    +'<div class="sig">'
+    +'<div><div style="height:48px"></div><div class="sig-line">Datum, Unterschrift Entleiher</div></div>'
+    +'<div><div style="height:48px"></div><div class="sig-line">Datum, Unterschrift '+e(vname)+'</div></div>'
+    +'</div>'
+    +'<div style="margin-top:16px;font-size:11px;color:#94a3b8;text-align:center">Mit Ihrer Unterschrift bestätigen Sie die ordnungsgemäße Übergabe und die Einhaltung der Verleihbedingungen.</div>'
+    +'</body></html>';
+  const blob=new Blob([html],{type:'text/html'});
+  const url=URL.createObjectURL(blob);
+  const w=window.open(url,'_blank');
+  setTimeout(()=>{if(w)w.print();URL.revokeObjectURL(url);},500);
+}
+
+// ── INIT ─────────────────────────────────────────────────────────────────────
+go('items');
+</script>
+</body>
+</html>
